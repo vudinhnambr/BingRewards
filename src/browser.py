@@ -42,14 +42,19 @@ class BrowserManager:
         # Restore storage state from env or file if running in CI/GitHub Actions
         session_env = os.environ.get("MICROSOFT_SESSION")
         session_file = Path(__file__).resolve().parent.parent / "session.json"
-        if session_env and not (profile_dir / "Default").exists():
+        storage_param = None
+
+        if session_env:
             import base64
             try:
                 decoded = base64.b64decode(session_env.strip()).decode("utf-8")
                 with open(session_file, "w", encoding="utf-8") as f:
                     f.write(decoded)
+                storage_param = str(session_file)
             except Exception as e:
                 log_warn(f"Không thể giải mã MICROSOFT_SESSION: {e}")
+        elif session_file.exists():
+            storage_param = str(session_file)
 
         if not self.playwright:
             self.playwright = await async_playwright().start()
@@ -75,6 +80,7 @@ class BrowserManager:
                 user_data_dir=str(profile_dir),
                 headless=headless,
                 channel=launch_channel,
+                storage_state=storage_param,
                 user_agent=user_agent,
                 viewport=viewport,
                 is_mobile=is_mobile,
@@ -89,6 +95,7 @@ class BrowserManager:
             self.context = await self.playwright.chromium.launch_persistent_context(
                 user_data_dir=str(profile_dir),
                 headless=headless,
+                storage_state=storage_param,
                 user_agent=user_agent,
                 viewport=viewport,
                 is_mobile=is_mobile,
