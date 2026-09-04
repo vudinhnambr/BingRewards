@@ -6,10 +6,14 @@ on:
     - cron: '45 0 * * *'
   workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào trên GitHub
 
+concurrency:
+  group: bing-rewards-group
+  cancel-in-progress: true
+
 jobs:
   run-rewards:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Code
