@@ -18,6 +18,11 @@ on:
           - 'Account 3'
           - 'Account 4'
           - 'Account 5'
+          - 'Account 6'
+          - 'Account 7'
+          - 'Account 8'
+          - 'Account 9'
+          - 'Account 10'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -58,6 +63,11 @@ jobs:
           MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
           MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
           MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
+          MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
+          MICROSOFT_SESSION_7: ${{ secrets.MICROSOFT_SESSION_7 }}
+          MICROSOFT_SESSION_8: ${{ secrets.MICROSOFT_SESSION_8 }}
+          MICROSOFT_SESSION_9: ${{ secrets.MICROSOFT_SESSION_9 }}
+          MICROSOFT_SESSION_10: ${{ secrets.MICROSOFT_SESSION_10 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
