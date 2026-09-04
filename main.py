@@ -370,12 +370,13 @@ async def run_multi_accounts(config: BotConfig, target_account: str = None):
         # Set session for this specific account
         os.environ["MICROSOFT_SESSION"] = session_b64
 
+        display_name = config.account_labels.get(label, label) if (config.account_labels and label in config.account_labels) else label
         res = None
         try:
-            res = await run_full_bot(config, account_label=label)
+            res = await run_full_bot(config, account_label=display_name)
         except Exception as e:
-            log_error(f"Lỗi khi chạy {label}: {e}")
-            res = {"account": label, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Lỗi"}
+            log_error(f"Lỗi khi chạy {display_name}: {e}")
+            res = {"account": display_name, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Lỗi"}
 
         if res:
             all_results.append(res)

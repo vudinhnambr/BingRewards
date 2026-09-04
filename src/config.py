@@ -23,6 +23,11 @@ class BotConfig:
     telegram_chat_id: str = "1023253824"
     search_cooldown_batch_size: int = 4
     search_cooldown_wait_sec: float = 15.0
+    account_labels: dict = None
+
+    def __post_init__(self):
+        if self.account_labels is None:
+            self.account_labels = {}
 
     @classmethod
     def load(cls) -> "BotConfig":
