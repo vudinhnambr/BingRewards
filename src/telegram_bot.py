@@ -38,7 +38,7 @@ class TelegramNotifier:
             log_warn(f"Không thể kết nối tới Telegram: {e}")
         return False
 
-    def send_rewards_summary(self, start_pts: str, end_pts: str, status: str = "Thành công"):
+    def send_rewards_summary(self, start_pts: str, end_pts: str, status: str = "Thành công", account_label: str = ""):
         """Send standardized Rewards daily summary."""
         try:
             start_num = int(str(start_pts).replace(",", "").replace(".", "")) if str(start_pts).isdigit() else 0
@@ -48,13 +48,15 @@ class TelegramNotifier:
         except Exception:
             gained_str = "N/A"
 
+        acc_header = f"👤 <b>Tài khoản:</b> <code>{account_label}</code>\n" if account_label else ""
         msg = (
             f"🤖 <b>BÁO CÁO MICROSOFT REWARDS HÀNG NGÀY</b>\n\n"
+            f"{acc_header}"
             f"💎 <b>Điểm đầu ngày:</b> <code>{start_pts}</code>\n"
             f"🎯 <b>Điểm sau khi chạy:</b> <code>{end_pts}</code> (<b>{gained_str} điểm</b>)\n"
             f"📊 <b>Trạng thái:</b> <code>{status}</code>\n"
             f"⏰ <b>Thời gian:</b> <i>{get_current_time_str()}</i>\n\n"
-            f"🚀 <i>Bot tự động cày điểm đã hoàn thành nhiệm vụ hôm nay!</i>"
+            f"🚀 <i>Bot tự động cày điểm đã hoàn thành nhiệm vụ!</i>"
         )
         return self.send_message(msg)
 

@@ -33,6 +33,11 @@ jobs:
       - name: Run Bing Rewards Bot
         env:
           MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
+          MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
+          MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
+          MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
+          MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
+          MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |

@@ -52,15 +52,15 @@ async def login_session(config: BotConfig, is_mobile: bool = False):
     finally:
         await bm.close()
 
-async def run_full_bot(config: BotConfig):
-    """Run full automation workflow."""
+async def run_full_bot(config: BotConfig, account_label: str = ""):
+    """Run full automation workflow for a specific account."""
     bm = BrowserManager(config)
     start_points = "N/A"
     end_points = "N/A"
 
     try:
         # Phase 1: Desktop Context (Daily set, More activities, Desktop Search)
-        log_step("GIAI ĐOẠN 1: DESKTOP WORKFLOW")
+        log_step(f"GIAI ĐOẠN 1: DESKTOP WORKFLOW {f'({account_label})' if account_label else ''}")
         context_desk = await bm.get_context(is_mobile=False)
         page_desk = await context_desk.new_page()
 
@@ -68,22 +68,18 @@ async def run_full_bot(config: BotConfig):
         is_logged_in = await dashboard.open_dashboard()
 
         if not is_logged_in:
-            log_error("Chưa đăng nhập tài khoản Microsoft! Vui lòng chọn menu 'Đăng nhập' trước.")
+            log_error(f"Chưa đăng nhập tài khoản Microsoft {f'[{account_label}]' if account_label else ''}!")
             return
 
         summary = await dashboard.get_account_summary()
         start_points = summary.get("points", "N/A")
         log_info(f"Số điểm ban đầu: [bold green]{start_points}[/bold green] (Chuỗi: {summary.get('streak', '0')} ngày)")
 
-        # 1. Daily Set
+        # 1. Daily Set & Activities
         if config.run_daily_set:
             await dashboard.solve_daily_set()
 
-        # 2. More Activities
-        if config.run_more_activities:
-            await dashboard.solve_more_activities()
-
-        # 3. Desktop Search
+        # 2. Desktop Search
         if config.run_desktop_search and config.desktop_searches > 0:
             searcher_desk = BingSearcher(page_desk, config, is_mobile=False)
             await searcher_desk.run_searches(config.desktop_searches)
@@ -92,7 +88,7 @@ async def run_full_bot(config: BotConfig):
 
         # Phase 2: Mobile Context (Mobile Search & MSN News Read to Earn)
         if (config.run_mobile_search and config.mobile_searches > 0) or config.run_msn_news:
-            log_step("GIAI ĐOẠN 2: MOBILE SEARCH & MSN NEWS WORKFLOW")
+            log_step(f"GIAI ĐOẠN 2: MOBILE SEARCH & MSN NEWS {f'({account_label})' if account_label else ''}")
             context_mob = await bm.get_context(is_mobile=True)
             page_mob = await context_mob.new_page()
 
@@ -110,7 +106,7 @@ async def run_full_bot(config: BotConfig):
             await bm.close()
 
         # Phase 3: Final Point Summary
-        log_step("TỔNG KẾT")
+        log_step(f"TỔNG KẾT {f'({account_label})' if account_label else ''}")
         context_final = await bm.get_context(is_mobile=False)
         page_final = await context_final.new_page()
         dash_final = RewardsDashboard(page_final, context_final, config)
@@ -118,7 +114,7 @@ async def run_full_bot(config: BotConfig):
             end_summary = await dash_final.get_account_summary()
             end_points = end_summary.get("points", "N/A")
 
-        table = Table(title="Kết Quả Hoàn Thành Microsoft Rewards", style="cyan")
+        table = Table(title=f"Kết Quả Microsoft Rewards {f'[{account_label}]' if account_label else ''}", style="cyan")
         table.add_column("Mục", style="bold white")
         table.add_column("Chi tiết", style="bold yellow")
         table.add_row("Điểm ban đầu", str(start_points))
@@ -130,14 +126,14 @@ async def run_full_bot(config: BotConfig):
         from src.telegram_bot import TelegramNotifier
         notifier = TelegramNotifier()
         if notifier.is_configured:
-            notifier.send_rewards_summary(start_pts=start_points, end_pts=end_points, status="Thành công")
+            notifier.send_rewards_summary(start_pts=start_points, end_pts=end_points, status="Thành công", account_label=account_label)
 
     except Exception as e:
-        log_error(f"Đã xảy ra lỗi trong quá trình chạy: {e}")
+        log_error(f"Đã xảy ra lỗi trong quá trình chạy {f'({account_label})' if account_label else ''}: {e}")
         from src.telegram_bot import TelegramNotifier
         notifier = TelegramNotifier()
         if notifier.is_configured:
-            notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT MICROSOFT REWARDS:</b>\n<code>{e}</code>")
+            notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT MICROSOFT REWARDS {f'({account_label})' if account_label else ''}:</b>\n<code>{e}</code>")
     finally:
         await bm.close()
 
@@ -204,6 +200,56 @@ def show_menu(config: BotConfig):
             log_success("Đã lưu cấu hình mới!")
             Prompt.ask("\nNhấn Enter để quay lại menu...")
 
+async def run_multi_accounts(config: BotConfig):
+    """Detect all configured account sessions and run sequentially."""
+    import os
+    import shutil
+    from pathlib import Path
+    
+    # Collect all available account sessions
+    accounts = []
+    
+    # Check default session
+    if os.environ.get("MICROSOFT_SESSION"):
+        accounts.append(("Account 1", os.environ.get("MICROSOFT_SESSION")))
+        
+    # Check numbered sessions (MICROSOFT_SESSION_1, 2, 3...)
+    for i in range(1, 10):
+        val = os.environ.get(f"MICROSOFT_SESSION_{i}")
+        if val and (f"Account {i}", val) not in accounts:
+            accounts.append((f"Account {i}", val))
+
+    # If no env sessions found, run default local profile
+    if not accounts:
+        await run_full_bot(config, account_label="Local Account")
+        return
+
+    log_info(f"Phát hiện {len(accounts)} tài khoản Microsoft được cấu hình!")
+
+    for idx, (label, session_b64) in enumerate(accounts, start=1):
+        log_step(f"BẮT ĐẦU TÀI KHOẢN [{idx}/{len(accounts)}]: {label}")
+        
+        # Reset desktop profile directory for isolated clean run
+        profile_dir = Path(__file__).resolve().parent / "browser_data" / "desktop_profile"
+        if profile_dir.exists():
+            try:
+                shutil.rmtree(profile_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+        # Set session for this specific account
+        os.environ["MICROSOFT_SESSION"] = session_b64
+
+        try:
+            await run_full_bot(config, account_label=label)
+        except Exception as e:
+            log_error(f"Lỗi khi chạy {label}: {e}")
+
+        # Short cool down between different accounts
+        if idx < len(accounts):
+            log_info("Nghỉ 10 giây trước khi chuyển sang tài khoản tiếp theo...")
+            await asyncio.sleep(10)
+
 def main():
     parser = argparse.ArgumentParser(description="Bing Rewards Automation Bot")
     parser.add_argument("--all", action="store_true", help="Chạy toàn bộ tự động không cần menu tương tác")
@@ -219,7 +265,7 @@ def main():
     if args.login:
         asyncio.run(login_session(config))
     elif args.all:
-        asyncio.run(run_full_bot(config))
+        asyncio.run(run_multi_accounts(config))
     else:
         show_menu(config)
 
