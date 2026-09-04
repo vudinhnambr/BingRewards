@@ -43,8 +43,8 @@ class TelegramNotifier:
     def send_rewards_summary(self, start_pts: str, end_pts: str, status: str = "Thành công", account_label: str = ""):
         """Send standardized Rewards daily summary."""
         try:
-            start_num = int(str(start_pts).replace(",", "").replace(".", "")) if str(start_pts).isdigit() else 0
-            end_num = int(str(end_pts).replace(",", "").replace(".", "")) if str(end_pts).isdigit() else 0
+            start_num = int(str(start_pts).replace(",", "").replace(".", "")) if str(start_pts).replace(",", "").replace(".", "").isdigit() else 0
+            end_num = int(str(end_pts).replace(",", "").replace(".", "")) if str(end_pts).replace(",", "").replace(".", "").isdigit() else 0
             gained = end_num - start_num if end_num >= start_num else 0
             gained_str = f"+{gained}" if gained > 0 else f"{gained}"
         except Exception:
@@ -59,6 +59,44 @@ class TelegramNotifier:
             f"📊 <b>Trạng thái:</b> <code>{status}</code>\n"
             f"⏰ <b>Thời gian:</b> <i>{get_current_time_str()}</i>\n\n"
             f"🚀 <i>Bot tự động cày điểm đã hoàn thành nhiệm vụ!</i>"
+        )
+        return self.send_message(msg)
+
+    def send_grand_multi_account_summary(self, results: list):
+        """Send a grand consolidated summary table of all accounts."""
+        if not results:
+            return False
+
+        total_pts = 0
+        total_gained = 0
+        lines = []
+
+        for r in results:
+            acc = r.get("account", "Account")
+            end_p = r.get("end_points", "0")
+            gained = r.get("gained", 0)
+            streak = r.get("streak", "0")
+            status = r.get("status", "Thành công")
+
+            try:
+                pts_num = int(str(end_p).replace(",", "").replace(".", ""))
+                total_pts += pts_num
+            except Exception:
+                pass
+            total_gained += gained
+
+            status_icon = "✅" if status == "Thành công" else "⚠️"
+            lines.append(f"{status_icon} <b>{acc}:</b> <code>{end_p}</code> pts (<b>+{gained}</b>) | 🔥 {streak}d")
+
+        accounts_text = "\n".join(lines)
+        msg = (
+            f"🏆 <b>TỔNG KẾT TẤT CẢ TÀI KHOẢN MICROSOFT REWARDS</b> 🏆\n\n"
+            f"{accounts_text}\n"
+            f"───────────────────────\n"
+            f"💎 <b>TỔNG ĐIỂM:</b> <code>{total_pts:,}</code> pts\n"
+            f"🚀 <b>Điểm cày hôm nay:</b> <code>+{total_gained:,}</code> pts\n"
+            f"👥 <b>Số tài khoản:</b> {len(results)}\n"
+            f"⏰ <b>Thời gian:</b> <i>{get_current_time_str()}</i>"
         )
         return self.send_message(msg)
 

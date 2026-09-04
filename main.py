@@ -126,11 +126,13 @@ async def login_session(config: BotConfig, is_mobile: bool = False, force_clean:
     finally:
         await bm.close()
 
-async def run_full_bot(config: BotConfig, account_label: str = ""):
-    """Run full automation workflow for a specific account."""
+async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
+    """Run full automation workflow for a specific account and return result dict."""
     bm = BrowserManager(config)
     start_points = "N/A"
     end_points = "N/A"
+    streak = "0"
+    account_name = account_label or "Account 1"
 
     try:
         # Phase 1: Desktop Context (Daily set, More activities, Desktop Search)
@@ -144,14 +146,17 @@ async def run_full_bot(config: BotConfig, account_label: str = ""):
         if not is_logged_in:
             log_error(f"Chưa đăng nhập tài khoản Microsoft {f'[{account_label}]' if account_label else ''}!")
             from src.telegram_bot import TelegramNotifier
+            from src.reporter import AccountReporter
+            AccountReporter.log_account_run(account_name, "N/A", "N/A", streak="0", status="Lỗi đăng nhập")
             notifier = TelegramNotifier()
             if notifier.is_configured:
                 notifier.send_message(f"⚠️ <b>LỖI ĐĂNG NHẬP {f'({account_label})' if account_label else ''}:</b>\nKhông thể truy cập Rewards Dashboard (Session có thể đã hết hạn hoặc cookie bị thiếu). Vui lòng cập nhật lại Secret trên GitHub!")
-            return
+            return {"account": account_name, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Lỗi đăng nhập"}
 
         summary = await dashboard.get_account_summary()
         start_points = summary.get("points", "N/A")
-        log_info(f"Số điểm ban đầu: [bold green]{start_points}[/bold green] (Chuỗi: {summary.get('streak', '0')} ngày)")
+        streak = summary.get("streak", "0")
+        log_info(f"Số điểm ban đầu: [bold green]{start_points}[/bold green] (Chuỗi: {streak} ngày)")
 
         # 1. Daily Set & Activities
         if config.run_daily_set:
@@ -191,27 +196,45 @@ async def run_full_bot(config: BotConfig, account_label: str = ""):
         if await dash_final.open_dashboard():
             end_summary = await dash_final.get_account_summary()
             end_points = end_summary.get("points", "N/A")
+            streak = end_summary.get("streak", streak)
 
         table = Table(title=f"Kết Quả Microsoft Rewards {f'[{account_label}]' if account_label else ''}", style="cyan")
         table.add_column("Mục", style="bold white")
         table.add_column("Chi tiết", style="bold yellow")
         table.add_row("Điểm ban đầu", str(start_points))
         table.add_row("Điểm sau khi chạy", str(end_points))
+        table.add_row("Chuỗi ngày (Streak)", f"🔥 {streak} ngày")
         table.add_row("Trạng thái", "[bold green]HOÀN TẤT THÀNH CÔNG[/bold green]")
         console.print(table)
 
-        # Send Telegram notification if configured
+        # Log to AccountReporter and generate dashboard
+        from src.reporter import AccountReporter
+        AccountReporter.log_account_run(account_name, start_points, end_points, streak=streak, status="Thành công")
+
+        # Send Telegram notification for this account
         from src.telegram_bot import TelegramNotifier
         notifier = TelegramNotifier()
         if notifier.is_configured:
             notifier.send_rewards_summary(start_pts=start_points, end_pts=end_points, status="Thành công", account_label=account_label)
 
+        def parse_pts(val):
+            try:
+                return int(str(val).replace(",", "").replace(".", "").strip())
+            except Exception:
+                return 0
+
+        gained = max(0, parse_pts(end_points) - parse_pts(start_points))
+        return {"account": account_name, "start_points": str(start_points), "end_points": str(end_points), "gained": gained, "streak": str(streak), "status": "Thành công"}
+
     except Exception as e:
         log_error(f"Đã xảy ra lỗi trong quá trình chạy {f'({account_label})' if account_label else ''}: {e}")
+        from src.reporter import AccountReporter
+        AccountReporter.log_account_run(account_name, start_points, end_points, streak=streak, status="Lỗi")
         from src.telegram_bot import TelegramNotifier
         notifier = TelegramNotifier()
         if notifier.is_configured:
             notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT MICROSOFT REWARDS {f'({account_label})' if account_label else ''}:</b>\n<code>{e}</code>")
+        return {"account": account_name, "start_points": str(start_points), "end_points": str(end_points), "gained": 0, "streak": str(streak), "status": "Lỗi"}
     finally:
         await bm.close()
 
@@ -232,9 +255,10 @@ def show_menu(config: BotConfig):
         console.print("[5] 🔑 Đăng nhập / Đổi tài khoản (Mở trình duyệt Desktop)")
         console.print("[6] 📲 Đăng nhập tài khoản Mobile (Nếu cần)")
         console.print("[7] ⚙️  Cài đặt cấu hình (Headless, số lượt tìm kiếm...)")
+        console.print("[8] 📊 Mở Bảng Tổng Quan Điểm Thưởng (Web Dashboard)")
         console.print("[0] 🚪 Thoát")
 
-        choice = Prompt.ask("\nNhập lựa chọn của bạn", choices=["0", "1", "2", "3", "4", "5", "6", "7"], default="1")
+        choice = Prompt.ask("\nNhập lựa chọn của bạn", choices=["0", "1", "2", "3", "4", "5", "6", "7", "8"], default="1")
 
         if choice == "0":
             console.print("[green]Tạm biệt![/green]")
@@ -277,12 +301,21 @@ def show_menu(config: BotConfig):
             config.save()
             log_success("Đã lưu cấu hình mới!")
             Prompt.ask("\nNhấn Enter để quay lại menu...")
+        elif choice == "8":
+            import webbrowser
+            from src.reporter import AccountReporter
+            dash_path = AccountReporter.generate_html_dashboard()
+            webbrowser.open(dash_path.as_uri())
+            log_success(f"Đã mở Bảng tổng quan tại: {dash_path}")
+            Prompt.ask("\nNhấn Enter để quay lại menu...")
 
 async def run_multi_accounts(config: BotConfig):
     """Detect all configured account sessions and run sequentially."""
     import os
     import shutil
     from pathlib import Path
+    from src.reporter import AccountReporter
+    from src.telegram_bot import TelegramNotifier
     
     # Collect all available account sessions
     accounts = []
@@ -300,11 +333,12 @@ async def run_multi_accounts(config: BotConfig):
 
     # If no env sessions found, run default local profile
     if not accounts:
-        await run_full_bot(config, account_label="Local Account")
+        res = await run_full_bot(config, account_label="Local Account")
         return
 
     log_info(f"Phát hiện {len(accounts)} tài khoản Microsoft được cấu hình: {[a[0] for a in accounts]}!")
 
+    all_results = []
     for idx, (label, session_b64) in enumerate(accounts, start=1):
         log_step(f"BẮT ĐẦU TÀI KHOẢN [{idx}/{len(accounts)}]: {label}")
         
@@ -326,25 +360,34 @@ async def run_multi_accounts(config: BotConfig):
         # Set session for this specific account
         os.environ["MICROSOFT_SESSION"] = session_b64
 
+        res = None
         try:
-            await run_full_bot(config, account_label=label)
+            res = await run_full_bot(config, account_label=label)
         except Exception as e:
             log_error(f"Lỗi khi chạy {label}: {e}")
-            from src.telegram_bot import TelegramNotifier
-            notifier = TelegramNotifier()
-            if notifier.is_configured:
-                notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT ({label}):</b>\n<code>{e}</code>")
+            res = {"account": label, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Lỗi"}
+
+        if res:
+            all_results.append(res)
 
         # Short cool down between different accounts
         if idx < len(accounts):
             log_info("Nghỉ 10 giây trước khi chuyển sang tài khoản tiếp theo...")
             await asyncio.sleep(10)
 
+    # Generate visual dashboard and send Grand Multi-Account Summary via Telegram
+    AccountReporter.generate_html_dashboard()
+    if len(all_results) > 1:
+        notifier = TelegramNotifier()
+        if notifier.is_configured:
+            notifier.send_grand_multi_account_summary(all_results)
+
 def main():
     parser = argparse.ArgumentParser(description="Bing Rewards Automation Bot")
     parser.add_argument("--all", action="store_true", help="Chạy toàn bộ tự động không cần menu tương tác")
     parser.add_argument("--login", action="store_true", help="Mở trình duyệt để đăng nhập")
     parser.add_argument("--headless", action="store_true", help="Chạy ở chế độ không mở cửa sổ trình duyệt")
+    parser.add_argument("--dashboard", action="store_true", help="Mở Bảng tổng quan Dashboard trên trình duyệt")
 
     args = parser.parse_args()
     config = BotConfig.load()
@@ -352,7 +395,12 @@ def main():
     if args.headless:
         config.headless = True
 
-    if args.login:
+    if args.dashboard:
+        import webbrowser
+        from src.reporter import AccountReporter
+        p = AccountReporter.generate_html_dashboard()
+        webbrowser.open(p.as_uri())
+    elif args.login:
         asyncio.run(login_session(config))
     elif args.all:
         asyncio.run(run_multi_accounts(config))

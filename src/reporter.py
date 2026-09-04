@@ -1,0 +1,633 @@
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import List, Dict, Any
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+HISTORY_FILE = DATA_DIR / "accounts_history.json"
+DASHBOARD_FILE = Path(__file__).resolve().parent.parent / "dashboard.html"
+
+class AccountReporter:
+    """Manages multi-account point tracking, history logging, and visual HTML dashboard generation."""
+
+    @staticmethod
+    def _init_data():
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        if not HISTORY_FILE.exists():
+            with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+                json.dump([], f)
+
+    @classmethod
+    def load_history(cls) -> List[Dict[str, Any]]:
+        cls._init_data()
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    @classmethod
+    def log_account_run(cls, account_label: str, start_pts: Any, end_pts: Any, streak: Any = "0", status: str = "Thành công"):
+        """Record account execution results to persistent history."""
+        history = cls.load_history()
+
+        def parse_pts(val):
+            try:
+                if val == "N/A" or val is None:
+                    return 0
+                return int(str(val).replace(",", "").replace(".", "").strip())
+            except Exception:
+                return 0
+
+        start_num = parse_pts(start_pts)
+        end_num = parse_pts(end_pts)
+        gained = max(0, end_num - start_num) if end_num > 0 and start_num > 0 else 0
+
+        now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        date_key = datetime.now().strftime("%d/%m/%Y")
+
+        entry = {
+            "account": account_label or "Account 1",
+            "start_points": str(start_pts),
+            "end_points": str(end_pts),
+            "gained": gained,
+            "streak": str(streak),
+            "status": status,
+            "timestamp": now_str,
+            "date": date_key
+        }
+
+        history.append(entry)
+        
+        # Keep last 200 runs
+        if len(history) > 200:
+            history = history[-200:]
+
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+
+        cls.generate_html_dashboard()
+
+    @classmethod
+    def get_latest_summary(cls) -> Dict[str, Any]:
+        """Aggregate latest point stats for all distinct accounts."""
+        history = cls.load_history()
+        accounts_map = {}
+
+        for item in history:
+            acc = item.get("account", "Account 1")
+            accounts_map[acc] = item  # Latest entry overrides
+
+        return accounts_map
+
+    @classmethod
+    def generate_html_dashboard(cls):
+        """Generate a sleek, modern glassmorphism Dark Mode HTML dashboard."""
+        history = cls.load_history()
+        latest_accounts = cls.get_latest_summary()
+
+        total_pts = 0
+        total_gained_today = 0
+        max_streak = 0
+
+        today_str = datetime.now().strftime("%d/%m/%Y")
+
+        for acc, data in latest_accounts.items():
+            try:
+                pts = int(str(data.get("end_points", "0")).replace(",", "").replace(".", ""))
+                total_pts += pts
+            except Exception:
+                pass
+
+            try:
+                stk = int(str(data.get("streak", "0")))
+                if stk > max_streak:
+                    max_streak = stk
+            except Exception:
+                pass
+
+        for item in history:
+            if item.get("date") == today_str:
+                total_gained_today += item.get("gained", 0)
+
+        # Prepare chart data (Dates and Points per account)
+        history_json = json.dumps(history, ensure_ascii=False)
+        latest_json = json.dumps(latest_accounts, ensure_ascii=False)
+
+        html_content = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Tổng Quan Microsoft Rewards</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {{
+            --bg-primary: #0b0f19;
+            --bg-secondary: #111827;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }}
+
+        * {{
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }}
+
+        body {{
+            background: radial-gradient(circle at top right, #1e1b4b 0%, #0b0f19 50%, #030712 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }}
+
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+
+        /* Header */
+        .header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }}
+
+        .header-title h1 {{
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }}
+
+        .header-title p {{
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-size: 0.95rem;
+        }}
+
+        .btn-refresh {{
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            border: none;
+            padding: 0.65rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }}
+
+        .btn-refresh:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }}
+
+        /* Stats Grid */
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }}
+
+        .stat-card {{
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }}
+
+        .stat-card:hover {{
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }}
+
+        .stat-card::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+        }}
+
+        .stat-card.c-blue::before {{ background: linear-gradient(90deg, #38bdf8, #3b82f6); }}
+        .stat-card.c-green::before {{ background: linear-gradient(90deg, #34d399, #10b981); }}
+        .stat-card.c-purple::before {{ background: linear-gradient(90deg, #a78bfa, #8b5cf6); }}
+        .stat-card.c-yellow::before {{ background: linear-gradient(90deg, #fbbf24, #f59e0b); }}
+
+        .stat-label {{
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }}
+
+        .stat-value {{
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin: 0.5rem 0 0.25rem;
+            letter-spacing: -0.02em;
+        }}
+
+        .stat-sub {{
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }}
+
+        /* Accounts Cards Section */
+        .section-title {{
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+
+        .accounts-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }}
+
+        .account-card {{
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }}
+
+        .acc-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }}
+
+        .acc-name {{
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+
+        .acc-badge {{
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }}
+
+        .acc-badge.error {{
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border-color: rgba(239, 68, 68, 0.3);
+        }}
+
+        .acc-points-box {{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }}
+
+        .acc-pts-large {{
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: #38bdf8;
+        }}
+
+        .acc-gained {{
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-green);
+        }}
+
+        .acc-footer {{
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.75rem;
+        }}
+
+        /* Table & Chart Container */
+        .panel {{
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }}
+
+        .chart-container {{
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }}
+
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }}
+
+        th {{
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }}
+
+        td {{
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }}
+
+        tr:hover td {{
+            background: rgba(255, 255, 255, 0.02);
+        }}
+
+        .mono {{
+            font-family: 'JetBrains Mono', monospace;
+        }}
+
+        .status-pill {{
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.35rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }}
+
+        .status-success {{
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }}
+
+        .status-fail {{
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <h1>💎 Microsoft Rewards Dashboard</h1>
+                <p>Theo dõi điểm thưởng & chuỗi nhiệm vụ tự động hàng ngày</p>
+            </div>
+            <div>
+                <button class="btn-refresh" onclick="location.reload()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Làm mới dữ liệu
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card c-blue">
+                <div class="stat-label">Tổng Điểm Tất Cả Tài Khoản</div>
+                <div class="stat-value">{total_pts:,}</div>
+                <div class="stat-sub">💎 Điểm khả dụng tích lũy</div>
+            </div>
+            <div class="stat-card c-green">
+                <div class="stat-label">Điểm Cày Được Hôm Nay</div>
+                <div class="stat-value">+{total_gained_today:,}</div>
+                <div class="stat-sub">🚀 Tăng trưởng trong ngày</div>
+            </div>
+            <div class="stat-card c-purple">
+                <div class="stat-label">Số Tài Khoản Hoạt Động</div>
+                <div class="stat-value">{len(latest_accounts)}</div>
+                <div class="stat-sub">👥 Đang tự động cày điểm</div>
+            </div>
+            <div class="stat-card c-yellow">
+                <div class="stat-label">Chuỗi Ngày Cao Nhất (Streak)</div>
+                <div class="stat-value">🔥 {max_streak}</div>
+                <div class="stat-sub">📅 Ngày duy trì liên tiếp</div>
+            </div>
+        </div>
+
+        <!-- Account Cards -->
+        <div class="section-title">👤 Trạng Thái Từng Tài Khoản</div>
+        <div class="accounts-grid" id="accountsList">
+            <!-- Dynamic Account Cards -->
+        </div>
+
+        <!-- Chart Panel -->
+        <div class="panel">
+            <div class="section-title">📈 Lịch Sử Tăng Trưởng Điểm Thưởng</div>
+            <div class="chart-container">
+                <canvas id="pointsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Detailed History Table -->
+        <div class="panel">
+            <div class="section-title">📋 Nhật Ký Chạy Gần Đây</div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Thời Gian</th>
+                            <th>Tài Khoản</th>
+                            <th>Điểm Ban Đầu</th>
+                            <th>Điểm Sau Khi Chạy</th>
+                            <th>Điểm Đã Cày</th>
+                            <th>Chuỗi (Streak)</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const historyData = {history_json};
+        const latestAccounts = {latest_json};
+
+        // Render Account Cards
+        const accContainer = document.getElementById('accountsList');
+        accContainer.innerHTML = '';
+
+        if (Object.keys(latestAccounts).length === 0) {{
+            accContainer.innerHTML = '<div style="color: var(--text-muted); grid-column: 1/-1;">Chưa có dữ liệu chạy tài khoản. Dữ liệu sẽ tự động xuất hiện sau lần chạy đầu tiên.</div>';
+        }} else {{
+            for (const [accName, acc] of Object.entries(latestAccounts)) {{
+                const isSuccess = acc.status === 'Thành công';
+                const card = document.createElement('div');
+                card.className = 'account-card';
+                card.innerHTML = `
+                    <div>
+                        <div class="acc-header">
+                            <div class="acc-name">
+                                <span>👤</span> ${{accName}}
+                            </div>
+                            <span class="acc-badge ${{isSuccess ? '' : 'error'}}">${{acc.status}}</span>
+                        </div>
+                        <div class="acc-points-box">
+                            <div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">ĐIỂM HIỆN TẠI</div>
+                                <div class="acc-pts-large">${{acc.end_points || '0'}}</div>
+                            </div>
+                            <div class="acc-gained">+${{acc.gained || 0}} pts</div>
+                        </div>
+                    </div>
+                    <div class="acc-footer">
+                        <span>🔥 Chuỗi: <b>${{acc.streak || 0}} ngày</b></span>
+                        <span>🕒 ${{acc.timestamp || 'N/A'}}</span>
+                    </div>
+                `;
+                accContainer.appendChild(card);
+            }}
+        }}
+
+        // Render History Table
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        const reversedHistory = [...historyData].reverse().slice(0, 30);
+
+        reversedHistory.forEach(item => {{
+            const isSuccess = item.status === 'Thành công';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="mono" style="color: var(--text-muted);">${{item.timestamp}}</td>
+                <td><b>${{item.account}}</b></td>
+                <td class="mono">${{item.start_points}}</td>
+                <td class="mono" style="color: #38bdf8; font-weight: 600;">${{item.end_points}}</td>
+                <td class="mono" style="color: #34d399; font-weight: 600;">+${{item.gained}}</td>
+                <td>🔥 ${{item.streak}} ngày</td>
+                <td>
+                    <span class="status-pill ${{isSuccess ? 'status-success' : 'status-fail'}}">${{item.status}}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }});
+
+        // Render Chart
+        const ctx = document.getElementById('pointsChart').getContext('2d');
+        
+        // Group history by date and account
+        const datesSet = new Set();
+        const accDatasets = {{}};
+
+        historyData.forEach(item => {{
+            datesSet.add(item.date);
+            const acc = item.account;
+            if (!accDatasets[acc]) {{
+                accDatasets[acc] = {{}};
+            }}
+            const pts = parseInt(String(item.end_points).replace(/[,.]/g, '')) || 0;
+            accDatasets[acc][item.date] = pts;
+        }});
+
+        const labels = Array.from(datesSet).slice(-10);
+        const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1'];
+        
+        const datasets = Object.keys(accDatasets).map((acc, index) => {{
+            const color = colors[index % colors.length];
+            const data = labels.map(d => accDatasets[acc][d] || null);
+            return {{
+                label: acc,
+                data: data,
+                borderColor: color,
+                backgroundColor: color + '20',
+                borderWidth: 3,
+                tension: 0.35,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }};
+        }});
+
+        new Chart(ctx, {{
+            type: 'line',
+            data: {{ labels: labels, datasets: datasets }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{
+                        labels: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 12 }} }}
+                    }}
+                }},
+                scales: {{
+                    x: {{
+                        grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit' }} }}
+                    }},
+                    y: {{
+                        grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit' }} }}
+                    }}
+                }}
+            }}
+        }});
+    </script>
+</body>
+</html>
+"""
+        with open(DASHBOARD_FILE, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        return DASHBOARD_FILE
