@@ -1,7 +1,9 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "buildCommand": null,
+  "outputDirectory": ".",
   "rewrites": [
-    { "source": "/", "destination": "/dashboard.html" }
+    { "source": "/", "destination": "/index.html" }
   ]
 }
