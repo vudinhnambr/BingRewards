@@ -20,16 +20,26 @@ def copy_to_clipboard(text: str):
         return False
 
 def clean_session_data(data: dict) -> dict:
-    """Filter out bloated telemetry/analytics and MSAL token blobs to keep session ultra-light (~10KB)."""
+    """Filter out bloated telemetry/analytics and Azure/AMC portal tokens to keep session under 10KB."""
     relevant_domains = ["bing.com", "live.com", "microsoft.com", "microsoftonline.com", "msn.com"]
+    
+    # Bloated Azure AD / Account Management portal tokens not needed for Bing & Rewards
+    bloated_cookie_names = [
+        "oparams", "amcsecauth", "amcaccesstoken", "fptctx", "ak_bmsc", "bm_sv", 
+        "esctx", "edgeid-user", "web-user", "ai_session", "__ucis_i", 
+        "microsoftapplicationstelemetrydeviceid", "msfpc", "amc-ms-cv", 
+        "authbounced", "shclsessionid", "_clck", "_clsk", "sptmarket"
+    ]
     
     clean_cookies = []
     for c in data.get("cookies", []):
         domain = c.get("domain", "").lower()
+        name = c.get("name", "").lower()
         if any(rd in domain for rd in relevant_domains):
-            clean_cookies.append(c)
+            if not any(b in name for b in bloated_cookie_names):
+                clean_cookies.append(c)
             
-    # Keep origins empty or only non-blob items to avoid exceeding 48KB GitHub Secret limit
+    # Keep origins empty to avoid exceeding GitHub Secret limit
     return {"cookies": clean_cookies, "origins": []}
 
 async def export():
