@@ -19,57 +19,106 @@ from src.searcher import BingSearcher
 from src.activities import RewardsDashboard
 from src.utils import console, log_info, log_success, log_warn, log_error, log_step
 
-async def login_session(config: BotConfig, is_mobile: bool = False, force_clean: bool = False):
+async def login_session(config: BotConfig, is_mobile: bool = False, force_clean: bool = True):
     """Open browser in visible mode for user to log in."""
     import shutil
+    import json
+    import base64
+    import subprocess
     from pathlib import Path
+    from export_session import clean_session_data
 
-    # Ask or force clean session if needed
-    if force_clean or Confirm.ask("Bạn có muốn [bold yellow]XÓA SẠCH[/bold yellow] phiên tài khoản cũ để đăng nhập tài khoản mới không?", default=True):
-        profile_dir = Path(__file__).resolve().parent / "browser_data" / "desktop_profile"
-        if profile_dir.exists():
-            try:
-                shutil.rmtree(profile_dir, ignore_errors=True)
-            except Exception:
-                pass
-        log_info("Đã làm sạch dữ liệu trình duyệt để sẵn sàng cho tài khoản mới!")
+    # Always clean session files when initiating a new login
+    profile_dir = Path(__file__).resolve().parent / "browser_data" / "desktop_profile"
+    session_file = Path(__file__).resolve().parent / "session.json"
+    txt_file = Path(__file__).resolve().parent / "session_base64.txt"
+
+    if profile_dir.exists():
+        try:
+            shutil.rmtree(profile_dir, ignore_errors=True)
+        except Exception:
+            pass
+    if session_file.exists():
+        session_file.unlink(missing_ok=True)
+    if txt_file.exists():
+        txt_file.unlink(missing_ok=True)
+
+    log_info("Đã làm sạch dữ liệu trình duyệt và phiên đăng nhập cũ!")
 
     bm = BrowserManager(config)
     mode_str = "Mobile" if is_mobile else "Desktop"
-    log_info(f"Đang mở trình duyệt {mode_str} để đăng nhập...")
+    log_info(f"Đang mở trình duyệt {mode_str} để đăng nhập tài khoản mới...")
     
     try:
-        context = await bm.get_context(is_mobile=is_mobile, force_headed=True)
+        context = await bm.get_context(is_mobile=is_mobile, force_headed=True, is_login=True)
         page = await context.new_page()
         
-        # Navigate to full logout first then rewards
+        # Ensure logout of any previous session first
         try:
-            await page.goto("https://login.live.com/logout.srf", wait_until="domcontentloaded", timeout=15000)
-            await asyncio.sleep(1.5)
+            await page.goto("https://login.live.com/logout.srf", wait_until="domcontentloaded", timeout=10000)
+            await asyncio.sleep(1)
         except Exception:
             pass
 
-        await page.goto("https://rewards.bing.com/", wait_until="domcontentloaded", timeout=30000)
+        # Open Microsoft login page directly
+        await page.goto("https://login.live.com/", wait_until="domcontentloaded", timeout=30000)
         
         console.print(Panel.fit(
             f"[bold yellow]HƯỚNG DẪN ĐĂNG NHẬP ({mode_str}):[/bold yellow]\n"
             "1. Nhập email và mật khẩu của [bold cyan]TÀI KHOẢN MỚI[/bold cyan] trên trình duyệt vừa mở ra.\n"
-            "2. Kiểm tra trang https://rewards.bing.com/ đã hiển thị đúng tài khoản mới.\n"
-            "3. Sau khi hoàn tất, quay lại đây và nhấn [bold green]ENTER[/bold green] để lưu session.",
+            "2. Sau khi đăng nhập thành công, mở trang https://rewards.bing.com/ để kiểm tra.\n"
+            "3. Quay lại cửa sổ này và nhấn [bold green]ENTER[/bold green] để tự động lưu và copy mã session vào bộ nhớ tạm (Clipboard).",
             title=f"Đăng nhập Microsoft Rewards ({mode_str})",
             border_style="cyan"
         ))
         
-        await asyncio.to_thread(input, "Nhấn ENTER sau khi bạn đã hoàn tất đăng nhập tài khoản mới trên trình duyệt...")
+        await asyncio.to_thread(input, "\n👉 Nhấn ENTER sau khi bạn đã đăng nhập xong trên trình duyệt...")
         
-        # Verify and sync Bing search cookies
+        # Navigate to rewards and bing to ensure all auth tokens are set
         try:
+            await page.goto("https://rewards.bing.com/", wait_until="domcontentloaded", timeout=15000)
+            await asyncio.sleep(2)
             await page.goto("https://www.bing.com/", wait_until="domcontentloaded", timeout=15000)
             await asyncio.sleep(2)
         except Exception:
             pass
 
-        log_success(f"Đã lưu session đăng nhập cho {mode_str} profile!")
+        # Save and auto-export session
+        raw_state = await context.storage_state()
+        cleaned_state = clean_session_data(raw_state)
+        compact_json = json.dumps(cleaned_state, separators=(',', ':'))
+
+        with open(session_file, "w", encoding="utf-8") as f:
+            f.write(compact_json)
+
+        b64_session = base64.b64encode(compact_json.encode("utf-8")).decode("utf-8")
+        with open(txt_file, "w", encoding="utf-8") as f:
+            f.write(b64_session)
+
+        # Copy to clipboard
+        copied = False
+        try:
+            process = subprocess.Popen('clip', stdin=subprocess.PIPE, shell=True)
+            process.communicate(input=b64_session.encode('utf-8'))
+            copied = True
+        except Exception:
+            pass
+
+        size_kb = len(b64_session) / 1024
+        console.print(Panel.fit(
+            f"[bold green]✅ ĐÃ LƯU VÀ SAO CHÉP MÃ SESSION THÀNH CÔNG![/bold green]\n\n"
+            f"{'👉 Đã copy vào bộ nhớ tạm (Clipboard) — Bạn có thể nhấn Ctrl+V để dán ngay!' if copied else 'Mã session đã lưu tại file session_base64.txt'}\n"
+            f"⚡ Dung lượng: [bold yellow]{size_kb:.1f} KB[/bold yellow] (Hợp lệ cho GitHub Secret < 48 KB)\n\n"
+            "📌 [bold cyan]HƯỚNG DẪN THÊM VÀO GITHUB ACTIONS (Nhiều tài khoản):[/bold cyan]\n"
+            "1. Vào GitHub repo ➔ [bold white]Settings[/bold white] ➔ [bold white]Secrets and variables[/bold white] ➔ [bold white]Actions[/bold white]\n"
+            "2. Nhấn [bold green]New repository secret[/bold green]\n"
+            "   • [bold white]Name:[/bold white] [bold yellow]MICROSOFT_SESSION_3[/bold yellow] (hoặc _4, _5 tương ứng)\n"
+            "   • [bold white]Secret:[/bold white] Nhấn [bold yellow]Ctrl + V[/bold yellow] để dán mã\n"
+            "3. Nhấn [bold green]Add secret[/bold green]. GitHub Actions sẽ tự động chạy tài khoản này mỗi ngày!",
+            title="ĐĂNG NHẬP & XUẤT SESSION THÀNH CÔNG",
+            border_style="green"
+        ))
+
     finally:
         await bm.close()
 

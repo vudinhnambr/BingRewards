@@ -24,7 +24,7 @@ class BrowserManager:
         self.playwright: Optional[Playwright] = None
         self.context: Optional[BrowserContext] = None
 
-    async def get_context(self, is_mobile: bool = False, force_headed: bool = False) -> BrowserContext:
+    async def get_context(self, is_mobile: bool = False, force_headed: bool = False, is_login: bool = False) -> BrowserContext:
         """Launch or return persistent browser context (unified profile)."""
         profile_dir = USER_DATA_DIR / "desktop_profile"
         profile_dir.mkdir(parents=True, exist_ok=True)
@@ -44,17 +44,18 @@ class BrowserManager:
         session_file = Path(__file__).resolve().parent.parent / "session.json"
         storage_param = None
 
-        if session_env:
-            import base64
-            try:
-                decoded = base64.b64decode(session_env.strip()).decode("utf-8")
-                with open(session_file, "w", encoding="utf-8") as f:
-                    f.write(decoded)
+        if not is_login:
+            if session_env:
+                import base64
+                try:
+                    decoded = base64.b64decode(session_env.strip()).decode("utf-8")
+                    with open(session_file, "w", encoding="utf-8") as f:
+                        f.write(decoded)
+                    storage_param = str(session_file)
+                except Exception as e:
+                    log_warn(f"Không thể giải mã MICROSOFT_SESSION: {e}")
+            elif session_file.exists():
                 storage_param = str(session_file)
-            except Exception as e:
-                log_warn(f"Không thể giải mã MICROSOFT_SESSION: {e}")
-        elif session_file.exists():
-            storage_param = str(session_file)
 
         if not self.playwright:
             self.playwright = await async_playwright().start()
@@ -68,6 +69,8 @@ class BrowserManager:
             "--disable-blink-features=AutomationControlled",
             "--no-default-browser-check",
             "--disable-infobars",
+            "--disable-features=msEdgeAutoSignIn,msForceBrowserSignIn,SingleSignOnPool",
+            "--no-first-run",
             "--start-maximized" if not is_mobile else "",
         ]
         args = [a for a in args if a]
@@ -104,8 +107,8 @@ class BrowserManager:
                 ignore_default_args=["--enable-automation"]
             )
 
-        # Inject session cookies if available
-        if session_file.exists():
+        # Inject session cookies if available and not login mode
+        if not is_login and session_file.exists():
             try:
                 import json
                 with open(session_file, "r", encoding="utf-8") as f:
