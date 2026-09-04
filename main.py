@@ -19,8 +19,21 @@ from src.searcher import BingSearcher
 from src.activities import RewardsDashboard
 from src.utils import console, log_info, log_success, log_warn, log_error, log_step
 
-async def login_session(config: BotConfig, is_mobile: bool = False):
+async def login_session(config: BotConfig, is_mobile: bool = False, force_clean: bool = False):
     """Open browser in visible mode for user to log in."""
+    import shutil
+    from pathlib import Path
+
+    # Ask or force clean session if needed
+    if force_clean or Confirm.ask("Bạn có muốn [bold yellow]XÓA SẠCH[/bold yellow] phiên tài khoản cũ để đăng nhập tài khoản mới không?", default=True):
+        profile_dir = Path(__file__).resolve().parent / "browser_data" / "desktop_profile"
+        if profile_dir.exists():
+            try:
+                shutil.rmtree(profile_dir, ignore_errors=True)
+            except Exception:
+                pass
+        log_info("Đã làm sạch dữ liệu trình duyệt để sẵn sàng cho tài khoản mới!")
+
     bm = BrowserManager(config)
     mode_str = "Mobile" if is_mobile else "Desktop"
     log_info(f"Đang mở trình duyệt {mode_str} để đăng nhập...")
@@ -28,18 +41,26 @@ async def login_session(config: BotConfig, is_mobile: bool = False):
     try:
         context = await bm.get_context(is_mobile=is_mobile, force_headed=True)
         page = await context.new_page()
-        await page.goto("https://rewards.bing.com/")
+        
+        # Navigate to full logout first then rewards
+        try:
+            await page.goto("https://login.live.com/logout.srf", wait_until="domcontentloaded", timeout=15000)
+            await asyncio.sleep(1.5)
+        except Exception:
+            pass
+
+        await page.goto("https://rewards.bing.com/", wait_until="domcontentloaded", timeout=30000)
         
         console.print(Panel.fit(
             f"[bold yellow]HƯỚNG DẪN ĐĂNG NHẬP ({mode_str}):[/bold yellow]\n"
-            "1. Đăng nhập tài khoản Microsoft trên cửa sổ trình duyệt vừa mở ra.\n"
-            "2. Kiểm tra trang https://rewards.bing.com/ và https://www.bing.com/ đã hiển thị tài khoản của bạn.\n"
-            "3. Sau khi hoàn tất, quay lại đây và nhấn [bold green]ENTER[/bold green] để lưu phiên đăng nhập.",
+            "1. Nhập email và mật khẩu của [bold cyan]TÀI KHOẢN MỚI[/bold cyan] trên trình duyệt vừa mở ra.\n"
+            "2. Kiểm tra trang https://rewards.bing.com/ đã hiển thị đúng tài khoản mới.\n"
+            "3. Sau khi hoàn tất, quay lại đây và nhấn [bold green]ENTER[/bold green] để lưu session.",
             title=f"Đăng nhập Microsoft Rewards ({mode_str})",
             border_style="cyan"
         ))
         
-        await asyncio.to_thread(input, "Nhấn ENTER sau khi bạn đã hoàn tất đăng nhập trên trình duyệt...")
+        await asyncio.to_thread(input, "Nhấn ENTER sau khi bạn đã hoàn tất đăng nhập tài khoản mới trên trình duyệt...")
         
         # Verify and sync Bing search cookies
         try:
