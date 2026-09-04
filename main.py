@@ -74,50 +74,54 @@ async def login_session(config: BotConfig, is_mobile: bool = False, force_clean:
         
         await asyncio.to_thread(input, "\n👉 Nhấn ENTER sau khi bạn đã đăng nhập xong trên trình duyệt...")
         
-        # Navigate to rewards and bing to ensure all auth tokens are set
-        try:
-            await page.goto("https://rewards.bing.com/", wait_until="domcontentloaded", timeout=15000)
-            await asyncio.sleep(2)
-            await page.goto("https://www.bing.com/", wait_until="domcontentloaded", timeout=15000)
-            await asyncio.sleep(2)
-        except Exception:
-            pass
-
         # Save and auto-export session
-        raw_state = await context.storage_state()
-        cleaned_state = clean_session_data(raw_state)
-        compact_json = json.dumps(cleaned_state, separators=(',', ':'))
-
-        with open(session_file, "w", encoding="utf-8") as f:
-            f.write(compact_json)
-
-        b64_session = base64.b64encode(compact_json.encode("utf-8")).decode("utf-8")
-        with open(txt_file, "w", encoding="utf-8") as f:
-            f.write(b64_session)
-
-        # Copy to clipboard
-        copied = False
         try:
-            process = subprocess.Popen('clip', stdin=subprocess.PIPE, shell=True)
-            process.communicate(input=b64_session.encode('utf-8'))
-            copied = True
-        except Exception:
-            pass
+            # Navigate to rewards and bing to ensure all auth tokens are set
+            try:
+                if not page.is_closed():
+                    await page.goto("https://rewards.bing.com/", wait_until="domcontentloaded", timeout=15000)
+                    await asyncio.sleep(2)
+                    await page.goto("https://www.bing.com/", wait_until="domcontentloaded", timeout=15000)
+                    await asyncio.sleep(2)
+            except Exception:
+                pass
 
-        size_kb = len(b64_session) / 1024
-        console.print(Panel.fit(
-            f"[bold green]✅ ĐÃ LƯU VÀ SAO CHÉP MÃ SESSION THÀNH CÔNG![/bold green]\n\n"
-            f"{'👉 Đã copy vào bộ nhớ tạm (Clipboard) — Bạn có thể nhấn Ctrl+V để dán ngay!' if copied else 'Mã session đã lưu tại file session_base64.txt'}\n"
-            f"⚡ Dung lượng: [bold yellow]{size_kb:.1f} KB[/bold yellow] (Hợp lệ cho GitHub Secret < 48 KB)\n\n"
-            "📌 [bold cyan]HƯỚNG DẪN THÊM VÀO GITHUB ACTIONS (Nhiều tài khoản):[/bold cyan]\n"
-            "1. Vào GitHub repo ➔ [bold white]Settings[/bold white] ➔ [bold white]Secrets and variables[/bold white] ➔ [bold white]Actions[/bold white]\n"
-            "2. Nhấn [bold green]New repository secret[/bold green]\n"
-            "   • [bold white]Name:[/bold white] [bold yellow]MICROSOFT_SESSION_3[/bold yellow] (hoặc _4, _5 tương ứng)\n"
-            "   • [bold white]Secret:[/bold white] Nhấn [bold yellow]Ctrl + V[/bold yellow] để dán mã\n"
-            "3. Nhấn [bold green]Add secret[/bold green]. GitHub Actions sẽ tự động chạy tài khoản này mỗi ngày!",
-            title="ĐĂNG NHẬP & XUẤT SESSION THÀNH CÔNG",
-            border_style="green"
-        ))
+            raw_state = await context.storage_state()
+            cleaned_state = clean_session_data(raw_state)
+            compact_json = json.dumps(cleaned_state, separators=(',', ':'))
+
+            with open(session_file, "w", encoding="utf-8") as f:
+                f.write(compact_json)
+
+            b64_session = base64.b64encode(compact_json.encode("utf-8")).decode("utf-8")
+            with open(txt_file, "w", encoding="utf-8") as f:
+                f.write(b64_session)
+
+            # Copy to clipboard
+            copied = False
+            try:
+                process = subprocess.Popen('clip', stdin=subprocess.PIPE, shell=True)
+                process.communicate(input=b64_session.encode('utf-8'))
+                copied = True
+            except Exception:
+                pass
+
+            size_kb = len(b64_session) / 1024
+            console.print(Panel.fit(
+                f"[bold green]✅ ĐÃ LƯU VÀ SAO CHÉP MÃ SESSION THÀNH CÔNG![/bold green]\n\n"
+                f"{'👉 Đã copy vào bộ nhớ tạm (Clipboard) — Bạn có thể nhấn Ctrl+V để dán ngay!' if copied else 'Mã session đã lưu tại file session_base64.txt'}\n"
+                f"⚡ Dung lượng: [bold yellow]{size_kb:.1f} KB[/bold yellow] (Hợp lệ cho GitHub Secret < 48 KB)\n\n"
+                "📌 [bold cyan]HƯỚNG DẪN THÊM VÀO GITHUB ACTIONS (Nhiều tài khoản):[/bold cyan]\n"
+                "1. Vào GitHub repo ➔ [bold white]Settings[/bold white] ➔ [bold white]Secrets and variables[/bold white] ➔ [bold white]Actions[/bold white]\n"
+                "2. Nhấn [bold green]New repository secret[/bold green]\n"
+                "   • [bold white]Name:[/bold white] [bold yellow]MICROSOFT_SESSION_3[/bold yellow] (hoặc _2, _4, _5 tương ứng)\n"
+                "   • [bold white]Secret:[/bold white] Nhấn [bold yellow]Ctrl + V[/bold yellow] để dán mã\n"
+                "3. Nhấn [bold green]Add secret[/bold green]. GitHub Actions sẽ tự động chạy tài khoản này mỗi ngày!",
+                title="ĐĂNG NHẬP & XUẤT SESSION THÀNH CÔNG",
+                border_style="green"
+            ))
+        except Exception as e:
+            log_error(f"Lỗi khi trích xuất session: {e}")
 
     finally:
         await bm.close()
