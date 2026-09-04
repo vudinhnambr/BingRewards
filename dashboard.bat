@@ -8,4 +8,7 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b
 )
 
+echo [INFO] Dang dong bo ket qua moi nhat tu Cloud...
+git pull --quiet origin main 2>nul
+
 ".venv\Scripts\python.exe" main.py --dashboard
