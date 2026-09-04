@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "account": "Account 1",
+    "start_points": "391",
+    "end_points": "391",
+    "gained": 0,
+    "streak": "5",
+    "status": "Thành công",
+    "timestamp": "04/09/2026 13:01:47",
+    "date": "04/09/2026"
+  },
+  {
+    "account": "Account 2",
+    "start_points": "385",
+    "end_points": "521",
+    "gained": 136,
+    "streak": "2",
+    "status": "Thành công",
+    "timestamp": "04/09/2026 13:10:20",
+    "date": "04/09/2026"
+  }
+]
