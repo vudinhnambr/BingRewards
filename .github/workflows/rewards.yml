@@ -2,8 +2,12 @@ name: Bing Rewards Daily Automation
 
 on:
   schedule:
-    # Chạy vào 07:45 AM (giờ Việt Nam, UTC+7), tức 00:45 AM UTC
-    - cron: '45 0 * * *'
+    # 1. Buổi sáng: 07:30 AM (Giờ Việt Nam, UTC+7) - Reset nhiệm vụ đầu ngày
+    - cron: '30 0 * * *'
+    # 2. Buổi trưa: 13:30 PM (Giờ Việt Nam, UTC+7) - Quét nhiệm vụ cập nhật & bonus
+    - cron: '30 6 * * *'
+    # 3. Buổi tối: 20:30 PM (Giờ Việt Nam, UTC+7) - Vét cạn toàn bộ điểm còn sót trong ngày
+    - cron: '30 13 * * *'
   workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào trên GitHub
     inputs:
       target_account:
