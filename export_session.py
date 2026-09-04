@@ -20,8 +20,7 @@ def copy_to_clipboard(text: str):
         return False
 
 def clean_session_data(data: dict) -> dict:
-    """Filter out bloated telemetry/analytics and keep only vital auth cookies."""
-    # Keep only relevant domains: bing.com, live.com, microsoft.com, microsoftonline.com
+    """Filter out bloated telemetry/analytics and MSAL token blobs to keep session ultra-light (~10KB)."""
     relevant_domains = ["bing.com", "live.com", "microsoft.com", "microsoftonline.com", "msn.com"]
     
     clean_cookies = []
@@ -30,20 +29,8 @@ def clean_session_data(data: dict) -> dict:
         if any(rd in domain for rd in relevant_domains):
             clean_cookies.append(c)
             
-    # Filter origins in localStorage - discard telemetry blobs
-    clean_origins = []
-    for o in data.get("origins", []):
-        origin_url = o.get("origin", "").lower()
-        if any(rd in origin_url for rd in relevant_domains):
-            clean_storage = []
-            for item in o.get("localStorage", []):
-                name = item.get("name", "")
-                # Discard telemetry logs
-                if not any(ign in name.lower() for ign in ["telemetry", "webvitals", "pageaction"]):
-                    clean_storage.append(item)
-            clean_origins.append({"origin": o["origin"], "localStorage": clean_storage})
-
-    return {"cookies": clean_cookies, "origins": clean_origins}
+    # Keep origins empty or only non-blob items to avoid exceeding 48KB GitHub Secret limit
+    return {"cookies": clean_cookies, "origins": []}
 
 async def export():
     config = BotConfig.load()
