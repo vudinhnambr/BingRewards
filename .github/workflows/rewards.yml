@@ -5,6 +5,19 @@ on:
     # Chạy vào 07:45 AM (giờ Việt Nam, UTC+7), tức 00:45 AM UTC
     - cron: '45 0 * * *'
   workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào trên GitHub
+    inputs:
+      target_account:
+        description: '🎯 Chọn tài khoản muốn chạy (hoặc All để chạy tất cả)'
+        required: true
+        default: 'All'
+        type: choice
+        options:
+          - 'All'
+          - 'Account 1'
+          - 'Account 2'
+          - 'Account 3'
+          - 'Account 4'
+          - 'Account 5'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -48,7 +61,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python main.py --all --headless
+          python main.py --all --headless --account "${{ github.event.inputs.target_account || 'All' }}"
 
       - name: Commit and Push Dashboard History
         if: always()

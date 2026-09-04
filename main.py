@@ -309,8 +309,8 @@ def show_menu(config: BotConfig):
             log_success(f"Đã mở Bảng tổng quan tại: {dash_path}")
             Prompt.ask("\nNhấn Enter để quay lại menu...")
 
-async def run_multi_accounts(config: BotConfig):
-    """Detect all configured account sessions and run sequentially."""
+async def run_multi_accounts(config: BotConfig, target_account: str = None):
+    """Detect all configured account sessions and run sequentially (or run specific target account)."""
     import os
     import shutil
     from pathlib import Path
@@ -335,6 +335,16 @@ async def run_multi_accounts(config: BotConfig):
     if not accounts:
         res = await run_full_bot(config, account_label="Local Account")
         return
+
+    # Filter target account if requested
+    if target_account and target_account.strip().lower() != "all":
+        t = target_account.strip().lower().replace("account", "").strip()
+        filtered = [a for a in accounts if a[0].lower() == target_account.lower() or a[0].lower().endswith(t)]
+        if filtered:
+            accounts = filtered
+            log_info(f"Đã chọn chạy riêng biệt: {[a[0] for a in accounts]}")
+        else:
+            log_warn(f"Không tìm thấy cấu hình phiên cho '{target_account}'. Sẽ chạy các tài khoản khả dụng: {[a[0] for a in accounts]}")
 
     log_info(f"Phát hiện {len(accounts)} tài khoản Microsoft được cấu hình: {[a[0] for a in accounts]}!")
 
@@ -385,6 +395,7 @@ async def run_multi_accounts(config: BotConfig):
 def main():
     parser = argparse.ArgumentParser(description="Bing Rewards Automation Bot")
     parser.add_argument("--all", action="store_true", help="Chạy toàn bộ tự động không cần menu tương tác")
+    parser.add_argument("--account", type=str, default="All", help="Chọn tài khoản cụ thể để chạy (ví dụ: 'Account 3' hoặc '3' hoặc 'All')")
     parser.add_argument("--login", action="store_true", help="Mở trình duyệt để đăng nhập")
     parser.add_argument("--headless", action="store_true", help="Chạy ở chế độ không mở cửa sổ trình duyệt")
     parser.add_argument("--dashboard", action="store_true", help="Mở Bảng tổng quan Dashboard trên trình duyệt")
@@ -403,7 +414,7 @@ def main():
     elif args.login:
         asyncio.run(login_session(config))
     elif args.all:
-        asyncio.run(run_multi_accounts(config))
+        asyncio.run(run_multi_accounts(config, target_account=args.account))
     else:
         show_menu(config)
 
