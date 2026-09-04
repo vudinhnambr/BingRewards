@@ -30,6 +30,14 @@ class AccountReporter:
     @classmethod
     def log_account_run(cls, account_label: str, start_pts: Any, end_pts: Any, streak: Any = "0", status: str = "Thành công"):
         """Record account execution results to persistent history."""
+        try:
+            from src.config import BotConfig
+            cfg = BotConfig.load()
+            if cfg.account_labels and account_label in cfg.account_labels:
+                account_label = cfg.account_labels[account_label]
+        except Exception:
+            pass
+
         history = cls.load_history()
 
         def parse_pts(val):
