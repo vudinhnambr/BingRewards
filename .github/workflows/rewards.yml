@@ -1,0 +1,39 @@
+name: Bing Rewards Daily Automation
+
+on:
+  schedule:
+    # Chạy vào 07:45 AM (giờ Việt Nam, UTC+7), tức 00:45 AM UTC
+    - cron: '45 0 * * *'
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào trên GitHub
+
+jobs:
+  run-rewards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browsers
+        run: |
+          python -m playwright install chromium --with-deps
+
+      - name: Run Bing Rewards Bot
+        env:
+          MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python main.py --all --headless

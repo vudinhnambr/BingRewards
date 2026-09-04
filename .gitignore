@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Browser profiles / Session data
+browser_data/
+browser_data_mobile/
+*.log
+
+# VS Code / IDE
+.vscode/
+.idea/
