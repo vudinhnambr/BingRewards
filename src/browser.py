@@ -80,7 +80,6 @@ class BrowserManager:
                 user_data_dir=str(profile_dir),
                 headless=headless,
                 channel=launch_channel,
-                storage_state=storage_param,
                 user_agent=user_agent,
                 viewport=viewport,
                 is_mobile=is_mobile,
@@ -95,7 +94,6 @@ class BrowserManager:
             self.context = await self.playwright.chromium.launch_persistent_context(
                 user_data_dir=str(profile_dir),
                 headless=headless,
-                storage_state=storage_param,
                 user_agent=user_agent,
                 viewport=viewport,
                 is_mobile=is_mobile,
@@ -105,6 +103,18 @@ class BrowserManager:
                 args=args,
                 ignore_default_args=["--enable-automation"]
             )
+
+        # Inject session cookies if available
+        if session_file.exists():
+            try:
+                import json
+                with open(session_file, "r", encoding="utf-8") as f:
+                    state_data = json.load(f)
+                cookies = state_data.get("cookies", [])
+                if cookies:
+                    await self.context.add_cookies(cookies)
+            except Exception as e:
+                log_warn(f"Lỗi khi nạp cookies vào trình duyệt: {e}")
 
         # Inject stealth scripts
         await self.context.add_init_script("""
