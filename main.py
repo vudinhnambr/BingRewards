@@ -139,6 +139,10 @@ async def run_full_bot(config: BotConfig, account_label: str = ""):
 
         if not is_logged_in:
             log_error(f"Chưa đăng nhập tài khoản Microsoft {f'[{account_label}]' if account_label else ''}!")
+            from src.telegram_bot import TelegramNotifier
+            notifier = TelegramNotifier()
+            if notifier.is_configured:
+                notifier.send_message(f"⚠️ <b>LỖI ĐĂNG NHẬP {f'({account_label})' if account_label else ''}:</b>\nKhông thể truy cập Rewards Dashboard (Session có thể đã hết hạn hoặc cookie bị thiếu). Vui lòng cập nhật lại Secret trên GitHub!")
             return
 
         summary = await dashboard.get_account_summary()
@@ -280,30 +284,38 @@ async def run_multi_accounts(config: BotConfig):
     accounts = []
     
     # Check default session
-    if os.environ.get("MICROSOFT_SESSION"):
-        accounts.append(("Account 1", os.environ.get("MICROSOFT_SESSION")))
+    sec_1 = os.environ.get("MICROSOFT_SESSION") or os.environ.get("MICROSOFT_SESSION_1")
+    if sec_1 and sec_1.strip():
+        accounts.append(("Account 1", sec_1.strip()))
         
-    # Check numbered sessions (MICROSOFT_SESSION_1, 2, 3...)
-    for i in range(1, 10):
+    # Check numbered sessions (MICROSOFT_SESSION_2, 3, 4, 5...)
+    for i in range(2, 11):
         val = os.environ.get(f"MICROSOFT_SESSION_{i}")
-        if val and (f"Account {i}", val) not in accounts:
-            accounts.append((f"Account {i}", val))
+        if val and val.strip():
+            accounts.append((f"Account {i}", val.strip()))
 
     # If no env sessions found, run default local profile
     if not accounts:
         await run_full_bot(config, account_label="Local Account")
         return
 
-    log_info(f"Phát hiện {len(accounts)} tài khoản Microsoft được cấu hình!")
+    log_info(f"Phát hiện {len(accounts)} tài khoản Microsoft được cấu hình: {[a[0] for a in accounts]}!")
 
     for idx, (label, session_b64) in enumerate(accounts, start=1):
         log_step(f"BẮT ĐẦU TÀI KHOẢN [{idx}/{len(accounts)}]: {label}")
         
-        # Reset desktop profile directory for isolated clean run
+        # Reset desktop profile directory and session.json for isolated clean run
         profile_dir = Path(__file__).resolve().parent / "browser_data" / "desktop_profile"
+        session_file = Path(__file__).resolve().parent / "session.json"
+
         if profile_dir.exists():
             try:
                 shutil.rmtree(profile_dir, ignore_errors=True)
+            except Exception:
+                pass
+        if session_file.exists():
+            try:
+                session_file.unlink(missing_ok=True)
             except Exception:
                 pass
 
@@ -314,6 +326,10 @@ async def run_multi_accounts(config: BotConfig):
             await run_full_bot(config, account_label=label)
         except Exception as e:
             log_error(f"Lỗi khi chạy {label}: {e}")
+            from src.telegram_bot import TelegramNotifier
+            notifier = TelegramNotifier()
+            if notifier.is_configured:
+                notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT ({label}):</b>\n<code>{e}</code>")
 
         # Short cool down between different accounts
         if idx < len(accounts):
