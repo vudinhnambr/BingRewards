@@ -57,6 +57,7 @@ jobs:
 
       - name: Run Bing Rewards Bot
         env:
+          TZ: 'Asia/Ho_Chi_Minh'
           MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
           MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
           MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
