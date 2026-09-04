@@ -7,8 +7,10 @@ class TelegramNotifier:
     """Sends notifications to Telegram channel or direct chat."""
 
     def __init__(self, token: Optional[str] = None, chat_id: Optional[str] = None):
-        self.token = token or os.environ.get("TELEGRAM_BOT_TOKEN")
-        self.chat_id = chat_id or os.environ.get("TELEGRAM_CHAT_ID")
+        from src.config import BotConfig
+        cfg = BotConfig.load()
+        self.token = token or os.environ.get("TELEGRAM_BOT_TOKEN") or getattr(cfg, "telegram_bot_token", None)
+        self.chat_id = chat_id or os.environ.get("TELEGRAM_CHAT_ID") or getattr(cfg, "telegram_chat_id", None)
 
     @property
     def is_configured(self) -> bool:
