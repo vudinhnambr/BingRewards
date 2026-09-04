@@ -11,32 +11,32 @@
   },
   {
     "account": "Account 2",
-    "start_points": "20",
+    "start_points": "156",
     "end_points": "156",
-    "gained": 136,
-    "streak": "2",
+    "gained": 0,
+    "streak": "1",
     "status": "Thành công",
-    "timestamp": "04/09/2026 13:10:20",
+    "timestamp": "04/09/2026 13:30:00",
     "date": "04/09/2026"
   },
   {
     "account": "Account 3",
     "start_points": "0",
-    "end_points": "145",
-    "gained": 145,
-    "streak": "1",
-    "status": "Chờ quét",
-    "timestamp": "04/09/2026 13:25:00",
+    "end_points": "0",
+    "gained": 0,
+    "streak": "0",
+    "status": "Chưa quét",
+    "timestamp": "04/09/2026 13:30:00",
     "date": "04/09/2026"
   },
   {
     "account": "Account 4",
     "start_points": "0",
-    "end_points": "150",
-    "gained": 150,
-    "streak": "1",
-    "status": "Chờ quét",
-    "timestamp": "04/09/2026 13:25:00",
+    "end_points": "0",
+    "gained": 0,
+    "streak": "0",
+    "status": "Chưa quét",
+    "timestamp": "04/09/2026 13:30:00",
     "date": "04/09/2026"
   }
 ]
