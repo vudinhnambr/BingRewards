@@ -90,14 +90,22 @@ async def run_full_bot(config: BotConfig):
 
         await bm.close()
 
-        # Phase 2: Mobile Context (Mobile Search)
-        if config.run_mobile_search and config.mobile_searches > 0:
-            log_step("GIAI ĐOẠN 2: MOBILE SEARCH WORKFLOW")
+        # Phase 2: Mobile Context (Mobile Search & MSN News Read to Earn)
+        if (config.run_mobile_search and config.mobile_searches > 0) or config.run_msn_news:
+            log_step("GIAI ĐOẠN 2: MOBILE SEARCH & MSN NEWS WORKFLOW")
             context_mob = await bm.get_context(is_mobile=True)
             page_mob = await context_mob.new_page()
 
-            searcher_mob = BingSearcher(page_mob, config, is_mobile=True)
-            await searcher_mob.run_searches(config.mobile_searches)
+            # Mobile Search
+            if config.run_mobile_search and config.mobile_searches > 0:
+                searcher_mob = BingSearcher(page_mob, config, is_mobile=True)
+                await searcher_mob.run_searches(config.mobile_searches)
+
+            # MSN News Read to Earn (+30 pts bonus)
+            if config.run_msn_news:
+                from src.msn_news import MSNNewsReader
+                news_reader = MSNNewsReader(page_mob, context_mob)
+                await news_reader.read_articles(count=10)
 
             await bm.close()
 

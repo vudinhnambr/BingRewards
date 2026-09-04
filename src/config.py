@@ -18,6 +18,7 @@ class BotConfig:
     min_delay_sec: float = 6.0
     max_delay_sec: float = 12.0
     fast_mode: bool = False
+    run_msn_news: bool = True
     search_cooldown_batch_size: int = 4
     search_cooldown_wait_sec: float = 15.0
 
