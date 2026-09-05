@@ -178,5 +178,15 @@
     "status": "Thành công",
     "timestamp": "05/09/2026 00:45:44",
     "date": "05/09/2026"
+  },
+  {
+    "account": "Local Account",
+    "start_points": "N/A",
+    "end_points": "N/A",
+    "gained": 0,
+    "streak": "0",
+    "status": "Lỗi đăng nhập",
+    "timestamp": "05/09/2026 07:45:47",
+    "date": "05/09/2026"
   }
 ]
