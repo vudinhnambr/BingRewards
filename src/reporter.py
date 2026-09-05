@@ -335,16 +335,20 @@ class AccountReporter:
             gap: 0.35rem;
         }}
 
-        /* Compact Account List (Phone Friendly) */
+        /* Compact Account List (Collapsible / Minimized by Default) */
         .accounts-list {{
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 0.45rem;
             margin-bottom: 1.25rem;
         }}
 
+        .accounts-list.open {{
+            display: flex;
+        }}
+
         @media (min-width: 640px) {{
-            .accounts-list {{
+            .accounts-list.open {{
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 0.65rem;
@@ -694,9 +698,13 @@ class AccountReporter:
             </div>
         </div>
 
-        <!-- Compact Account Rows -->
-        <div class="section-header">
-            <div class="section-title">👤 Trạng Thái Tài Khoản</div>
+        <!-- Compact Account Rows (Collapsed / Minimized by Default) -->
+        <div class="section-header" style="cursor: pointer; user-select: none;" onclick="toggleAccounts()">
+            <div class="section-title">
+                <span>👤 Trạng Thái Tài Khoản ({len(latest_accounts)})</span>
+                <svg class="chevron" id="accChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <button class="btn-toggle-all" id="toggleAccsBtn" onclick="event.stopPropagation(); toggleAccounts();">Mở rộng</button>
         </div>
         <div class="accounts-list" id="accountsList">
             <!-- Dynamic Compact Account Rows -->
@@ -831,6 +839,15 @@ class AccountReporter:
                 `;
                 historyContainer.appendChild(dayCard);
             }});
+        }}
+
+        function toggleAccounts() {{
+            const list = document.getElementById('accountsList');
+            const btn = document.getElementById('toggleAccsBtn');
+            const chevron = document.getElementById('accChevron');
+            const isOpen = list.classList.toggle('open');
+            if (btn) btn.textContent = isOpen ? 'Thu gọn' : 'Mở rộng';
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         }}
 
         function toggleAllDays() {{
