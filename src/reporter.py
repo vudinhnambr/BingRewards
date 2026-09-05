@@ -124,7 +124,7 @@ class AccountReporter:
 
     @classmethod
     def generate_html_dashboard(cls):
-        """Generate a sleek, modern, mobile-first glassmorphism HTML dashboard."""
+        """Generate a sleek, ultra-clean mobile-optimized HTML dashboard."""
         history = cls.load_history()
         latest_accounts = cls.get_latest_summary()
 
@@ -164,7 +164,7 @@ class AccountReporter:
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -195,11 +195,11 @@ class AccountReporter:
             background: radial-gradient(circle at top right, #1e1b4b 0%, #0b0f19 50%, #030712 100%);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 1rem 0.75rem 2rem;
+            padding: 0.85rem 0.65rem 2.5rem;
         }}
 
         .container {{
-            max-width: 1100px;
+            max-width: 900px;
             margin: 0 auto;
         }}
 
@@ -208,72 +208,69 @@ class AccountReporter:
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 1.25rem;
-            padding-bottom: 1rem;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
             border-bottom: 1px solid var(--card-border);
         }}
 
         .header-title h1 {{
-            font-size: 1.35rem;
+            font-size: 1.25rem;
             font-weight: 800;
             background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             line-height: 1.2;
         }}
 
         .header-title p {{
             color: var(--text-muted);
-            margin-top: 0.2rem;
-            font-size: 0.8rem;
+            margin-top: 0.15rem;
+            font-size: 0.75rem;
         }}
 
         .btn-refresh {{
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             color: white;
             border: none;
-            padding: 0.5rem 0.9rem;
-            border-radius: 0.6rem;
+            padding: 0.45rem 0.8rem;
+            border-radius: 0.5rem;
             font-weight: 600;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.35rem;
             white-space: nowrap;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            transition: all 0.2s;
+            box-shadow: 0 3px 10px rgba(59, 130, 246, 0.3);
+            transition: transform 0.15s ease;
         }}
 
         .btn-refresh:active {{
-            transform: scale(0.96);
+            transform: scale(0.95);
         }}
 
-        /* Stats Grid (2x2 on Mobile, 4x1 on Desktop) */
+        /* Stats 2x2 Grid */
         .stats-grid {{
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.65rem;
-            margin-bottom: 1.25rem;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
         }}
 
-        @media (min-width: 768px) {{
+        @media (min-width: 640px) {{
             .stats-grid {{
                 grid-template-columns: repeat(4, 1fr);
-                gap: 1rem;
+                gap: 0.75rem;
             }}
             body {{
-                padding: 1.75rem 1.5rem 3rem;
+                padding: 1.5rem 1.25rem 3rem;
             }}
             .header-title h1 {{
-                font-size: 1.85rem;
-            }}
-            .header-title p {{
-                font-size: 0.95rem;
+                font-size: 1.6rem;
             }}
         }}
 
@@ -281,8 +278,8 @@ class AccountReporter:
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             backdrop-filter: blur(12px);
-            border-radius: 0.85rem;
-            padding: 0.9rem 1rem;
+            border-radius: 0.75rem;
+            padding: 0.75rem 0.85rem;
             position: relative;
             overflow: hidden;
         }}
@@ -293,7 +290,7 @@ class AccountReporter:
             top: 0;
             left: 0;
             width: 100%;
-            height: 3px;
+            height: 2.5px;
         }}
 
         .stat-card.c-blue::before {{ background: linear-gradient(90deg, #38bdf8, #3b82f6); }}
@@ -303,22 +300,22 @@ class AccountReporter:
 
         .stat-label {{
             color: var(--text-muted);
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.03em;
         }}
 
         .stat-value {{
-            font-size: 1.45rem;
+            font-size: 1.35rem;
             font-weight: 800;
-            margin: 0.35rem 0 0.15rem;
+            margin: 0.25rem 0 0.1rem;
             letter-spacing: -0.02em;
         }}
 
         .stat-sub {{
             color: var(--text-muted);
-            font-size: 0.72rem;
+            font-size: 0.7rem;
         }}
 
         /* Section Headings */
@@ -326,123 +323,123 @@ class AccountReporter:
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.85rem;
-            gap: 0.5rem;
-        }}
-
-        .section-title {{
-            font-size: 1.1rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }}
-
-        /* Accounts Grid */
-        .accounts-grid {{
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.65rem;
-            margin-bottom: 1.5rem;
-        }}
-
-        @media (min-width: 640px) {{
-            .accounts-grid {{
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.85rem;
-            }}
-        }}
-
-        @media (min-width: 1024px) {{
-            .accounts-grid {{
-                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                gap: 1rem;
-            }}
-        }}
-
-        .account-card {{
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            backdrop-filter: blur(12px);
-            border-radius: 0.85rem;
-            padding: 0.9rem 1.1rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: border-color 0.2s;
-        }}
-
-        .acc-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 0.65rem;
             gap: 0.5rem;
         }}
 
-        .acc-name {{
-            font-size: 0.95rem;
+        .section-title {{
+            font-size: 1rem;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.35rem;
+        }}
+
+        /* Compact Account List (Phone Friendly) */
+        .accounts-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-bottom: 1.25rem;
+        }}
+
+        @media (min-width: 640px) {{
+            .accounts-list {{
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.65rem;
+            }}
+        }}
+
+        .account-row {{
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 0.65rem;
+            padding: 0.65rem 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+
+        .acc-main-info {{
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }}
+
+        .acc-name {{
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-main);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
 
-        .acc-badge {{
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent-green);
-            padding: 0.2rem 0.55rem;
-            border-radius: 9999px;
+        .acc-meta {{
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
             font-size: 0.7rem;
+            color: var(--text-muted);
+        }}
+
+        .acc-points-right {{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }}
+
+        .acc-pts-box {{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.05rem;
+        }}
+
+        .acc-pts-val {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #38bdf8;
+            line-height: 1.1;
+        }}
+
+        .acc-gained-val {{
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            line-height: 1.1;
+        }}
+
+        .status-tag {{
+            padding: 0.15rem 0.45rem;
+            border-radius: 0.35rem;
+            font-size: 0.68rem;
             font-weight: 600;
-            border: 1px solid rgba(16, 185, 129, 0.3);
             white-space: nowrap;
         }}
 
-        .acc-badge.error {{
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--accent-red);
-            border-color: rgba(239, 68, 68, 0.3);
+        .status-tag.success {{
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }}
 
-        .acc-badge.wait {{
+        .status-tag.wait {{
             background: rgba(245, 158, 11, 0.15);
             color: var(--accent-yellow);
-            border-color: rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.3);
         }}
 
-        .acc-points-box {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 0.65rem;
-            padding: 0.65rem 0.9rem;
-            margin-bottom: 0.65rem;
-        }}
-
-        .acc-pts-large {{
-            font-size: 1.45rem;
-            font-weight: 800;
-            color: #38bdf8;
-        }}
-
-        .acc-gained {{
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--accent-green);
-        }}
-
-        .acc-footer {{
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 0.5rem;
+        .status-tag.error {{
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }}
 
         /* Panel Container */
@@ -450,92 +447,85 @@ class AccountReporter:
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             backdrop-filter: blur(12px);
-            border-radius: 0.85rem;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
+            border-radius: 0.75rem;
+            padding: 0.85rem;
+            margin-bottom: 1.25rem;
         }}
 
-        @media (min-width: 768px) {{
+        @media (min-width: 640px) {{
             .panel {{
-                padding: 1.35rem;
+                padding: 1.15rem;
             }}
         }}
 
         .chart-container {{
             position: relative;
-            height: 220px;
+            height: 200px;
             width: 100%;
         }}
 
-        @media (min-width: 768px) {{
+        @media (min-width: 640px) {{
             .chart-container {{
-                height: 280px;
+                height: 250px;
             }}
         }}
 
-        /* History Accordion (Collapsed by Default) */
+        /* History Accordion */
         .btn-toggle-all {{
             background: rgba(255, 255, 255, 0.06);
             color: var(--text-muted);
             border: 1px solid var(--card-border);
-            padding: 0.25rem 0.65rem;
-            border-radius: 0.4rem;
-            font-size: 0.75rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 0.35rem;
+            font-size: 0.72rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-        }}
-
-        .btn-toggle-all:hover {{
-            background: rgba(255, 255, 255, 0.12);
-            color: white;
         }}
 
         .day-card {{
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid var(--card-border);
-            border-radius: 0.75rem;
-            margin-bottom: 0.65rem;
+            border-radius: 0.65rem;
+            margin-bottom: 0.5rem;
             overflow: hidden;
-            transition: all 0.2s ease;
+            transition: border-color 0.2s;
         }}
 
         .day-header {{
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem 0.95rem;
+            padding: 0.65rem 0.85rem;
             cursor: pointer;
             background: rgba(30, 41, 59, 0.4);
             user-select: none;
-            transition: background 0.2s;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }}
 
-        .day-header:hover, .day-header:active {{
+        .day-header:active {{
             background: rgba(30, 41, 59, 0.8);
         }}
 
         .day-title {{
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }}
 
         .day-badges {{
             display: flex;
             align-items: center;
-            gap: 0.4rem;
-            flex-wrap: wrap;
+            gap: 0.35rem;
         }}
 
         .badge-pill {{
-            font-size: 0.7rem;
-            padding: 0.15rem 0.5rem;
+            font-size: 0.68rem;
+            padding: 0.12rem 0.45rem;
             border-radius: 9999px;
             font-weight: 600;
+            white-space: nowrap;
         }}
 
         .badge-gained {{
@@ -553,17 +543,17 @@ class AccountReporter:
         .badge-today {{
             background: linear-gradient(135deg, #06b6d4, #3b82f6);
             color: white;
-            font-size: 0.65rem;
-            padding: 0.1rem 0.4rem;
-            border-radius: 0.3rem;
+            font-size: 0.62rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.25rem;
             font-weight: 700;
             text-transform: uppercase;
         }}
 
         .chevron {{
             transition: transform 0.2s ease;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             color: var(--text-muted);
             flex-shrink: 0;
         }}
@@ -574,7 +564,7 @@ class AccountReporter:
 
         .day-content {{
             display: none;
-            padding: 0.4rem 0.65rem 0.65rem;
+            padding: 0.2rem 0.4rem 0.4rem;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }}
 
@@ -582,29 +572,29 @@ class AccountReporter:
             display: block;
         }}
 
-        /* Clean Mobile Run List */
-        .run-item {{
-            display: flex;
-            justify-content: space-between;
+        /* Pixel-Locked History Grid Rows */
+        .run-grid-row {{
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 68px 80px;
             align-items: center;
-            padding: 0.55rem 0.4rem;
+            padding: 0.5rem 0.35rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            font-size: 0.8rem;
-            gap: 0.5rem;
+            gap: 0.35rem;
         }}
 
-        .run-item:last-child {{
+        .run-grid-row:last-child {{
             border-bottom: none;
         }}
 
-        .run-info {{
+        .run-col-acc {{
             display: flex;
             flex-direction: column;
-            gap: 0.15rem;
+            gap: 0.1rem;
             min-width: 0;
         }}
 
-        .run-acc {{
+        .run-col-name {{
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-main);
             overflow: hidden;
@@ -612,49 +602,55 @@ class AccountReporter:
             white-space: nowrap;
         }}
 
-        .run-time {{
-            font-size: 0.7rem;
+        .run-col-time {{
+            font-size: 0.68rem;
             color: var(--text-muted);
             font-family: 'JetBrains Mono', monospace;
         }}
 
-        .run-stats {{
+        .run-col-pts {{
             display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            flex-shrink: 0;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.05rem;
             text-align: right;
         }}
 
-        .run-pts {{
+        .run-col-pts-val {{
             font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            color: #38bdf8;
             font-size: 0.85rem;
+            font-weight: 700;
+            color: #38bdf8;
+            line-height: 1.1;
         }}
 
-        .run-gained {{
-            font-size: 0.75rem;
+        .run-col-gained {{
+            font-size: 0.7rem;
             font-weight: 700;
             color: #34d399;
+            line-height: 1.1;
         }}
 
-        .status-pill {{
-            padding: 0.15rem 0.45rem;
-            border-radius: 0.35rem;
-            font-size: 0.68rem;
+        .run-col-status {{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.1rem;
+        }}
+
+        .run-col-pill {{
+            padding: 0.12rem 0.4rem;
+            border-radius: 0.3rem;
+            font-size: 0.65rem;
             font-weight: 600;
             white-space: nowrap;
+            line-height: 1.2;
         }}
 
-        .status-success {{
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-        }}
-
-        .status-fail {{
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
+        .run-col-streak {{
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            line-height: 1.1;
         }}
     </style>
 </head>
@@ -668,7 +664,7 @@ class AccountReporter:
             </div>
             <div>
                 <button class="btn-refresh" onclick="location.reload()">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     Làm mới
                 </button>
             </div>
@@ -698,12 +694,12 @@ class AccountReporter:
             </div>
         </div>
 
-        <!-- Account Cards -->
+        <!-- Compact Account Rows -->
         <div class="section-header">
             <div class="section-title">👤 Trạng Thái Tài Khoản</div>
         </div>
-        <div class="accounts-grid" id="accountsList">
-            <!-- Dynamic Account Cards -->
+        <div class="accounts-list" id="accountsList">
+            <!-- Dynamic Compact Account Rows -->
         </div>
 
         <!-- Chart Panel -->
@@ -732,51 +728,49 @@ class AccountReporter:
         const historyData = {history_json};
         const latestAccounts = {latest_json};
 
-        // Render Account Cards
+        // Render Compact Account Rows
         const accContainer = document.getElementById('accountsList');
         accContainer.innerHTML = '';
 
         if (Object.keys(latestAccounts).length === 0) {{
-            accContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Chưa có dữ liệu tài khoản.</div>';
+            accContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">Chưa có dữ liệu tài khoản.</div>';
         }} else {{
             for (const [accName, acc] of Object.entries(latestAccounts)) {{
                 const isSuccess = acc.status === 'Thành công';
                 const isWait = acc.status === 'Chờ chạy';
-                const badgeClass = isSuccess ? '' : (isWait ? 'wait' : 'error');
+                const tagClass = isSuccess ? 'success' : (isWait ? 'wait' : 'error');
                 
-                const card = document.createElement('div');
-                card.className = 'account-card';
-                card.innerHTML = `
-                    <div>
-                        <div class="acc-header">
-                            <div class="acc-name" title="${{accName}}">
-                                <span>👤</span> ${{accName}}
-                            </div>
-                            <span class="acc-badge ${{badgeClass}}">${{acc.status}}</span>
+                const row = document.createElement('div');
+                row.className = 'account-row';
+                row.innerHTML = `
+                    <div class="acc-main-info">
+                        <div class="acc-name" title="${{accName}}">
+                            <span>👤</span> ${{accName}}
                         </div>
-                        <div class="acc-points-box">
-                            <div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted);">ĐIỂM HIỆN TẠI</div>
-                                <div class="acc-pts-large">${{acc.end_points || '0'}}</div>
-                            </div>
-                            <div class="acc-gained">+${{acc.gained || 0}} pts</div>
+                        <div class="acc-meta">
+                            <span>🔥 ${{acc.streak || 0}}d</span>
+                            <span>•</span>
+                            <span>🕒 ${{acc.timestamp ? acc.timestamp.split(' ')[1] || acc.timestamp : 'N/A'}}</span>
                         </div>
                     </div>
-                    <div class="acc-footer">
-                        <span>🔥 Chuỗi: <b>${{acc.streak || 0}} ngày</b></span>
-                        <span>🕒 ${{acc.timestamp || 'N/A'}}</span>
+                    <div class="acc-points-right">
+                        <div class="acc-pts-box">
+                            <div class="acc-pts-val">${{acc.end_points || '0'}}</div>
+                            <div class="acc-gained-val">+${{acc.gained || 0}}</div>
+                        </div>
+                        <span class="status-tag ${{tagClass}}">${{acc.status}}</span>
                     </div>
                 `;
-                accContainer.appendChild(card);
+                accContainer.appendChild(row);
             }}
         }}
 
-        // Render Day-Grouped History (Collapsed by Default)
+        // Render Day-Grouped History (Locked Grid Layout)
         const historyContainer = document.getElementById('historyGroupedContainer');
         historyContainer.innerHTML = '';
 
         if (!historyData || historyData.length === 0) {{
-            historyContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">Chưa có nhật ký nào.</div>';
+            historyContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.4rem 0;">Chưa có nhật ký nào.</div>';
         }} else {{
             const historyByDate = {{}};
             historyData.forEach(item => {{
@@ -793,32 +787,31 @@ class AccountReporter:
                 const successCount = runs.filter(r => r.status === 'Thành công').length;
                 const isToday = (index === 0);
 
-                let listHtml = '';
+                let rowsHtml = '';
                 [...runs].reverse().forEach(item => {{
                     const isSuccess = item.status === 'Thành công';
                     const timeOnly = item.timestamp ? (item.timestamp.split(' ')[1] || item.timestamp) : '';
-                    listHtml += `
-                        <div class="run-item">
-                            <div class="run-info">
-                                <div class="run-acc">${{item.account}}</div>
-                                <div class="run-time">${{timeOnly}} • Gốc: ${{item.start_points}}</div>
+                    const pillClass = isSuccess ? 'status-tag success' : 'status-tag error';
+
+                    rowsHtml += `
+                        <div class="run-grid-row">
+                            <div class="run-col-acc">
+                                <div class="run-col-name" title="${{item.account}}">${{item.account}}</div>
+                                <div class="run-col-time">${{timeOnly}} • Gốc: ${{item.start_points}}</div>
                             </div>
-                            <div class="run-stats">
-                                <div>
-                                    <div class="run-pts">${{item.end_points}}</div>
-                                    <div class="run-gained">+${{item.gained}}</div>
-                                </div>
-                                <div>
-                                    <span class="status-pill ${{isSuccess ? 'status-success' : 'status-fail'}}">${{item.status}}</span>
-                                    <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">🔥 ${{item.streak}}d</div>
-                                </div>
+                            <div class="run-col-pts">
+                                <div class="run-col-pts-val">${{item.end_points}}</div>
+                                <div class="run-col-gained">+${{item.gained}}</div>
+                            </div>
+                            <div class="run-col-status">
+                                <span class="run-col-pill ${{pillClass}}">${{item.status}}</span>
+                                <div class="run-col-streak">🔥 ${{item.streak}}d</div>
                             </div>
                         </div>
                     `;
                 }});
 
                 const dayCard = document.createElement('div');
-                // Collapsed by default
                 dayCard.className = 'day-card';
                 dayCard.innerHTML = `
                     <div class="day-header" onclick="this.parentElement.classList.toggle('open')">
@@ -833,7 +826,7 @@ class AccountReporter:
                         </div>
                     </div>
                     <div class="day-content">
-                        ${{listHtml}}
+                        ${{rowsHtml}}
                     </div>
                 `;
                 historyContainer.appendChild(dayCard);
@@ -877,15 +870,15 @@ class AccountReporter:
             const color = colors[index % colors.length];
             const data = labels.map(d => accDatasets[acc][d] || null);
             return {{
-                label: acc.split('@')[0], // Short name for mobile chart legend
+                label: acc.split('@')[0],
                 data: data,
                 borderColor: color,
                 backgroundColor: color + '15',
-                borderWidth: 2.5,
+                borderWidth: 2,
                 tension: 0.35,
                 fill: false,
-                pointRadius: 3,
-                pointHoverRadius: 5
+                pointRadius: 2.5,
+                pointHoverRadius: 4.5
             }};
         }});
 
@@ -900,20 +893,20 @@ class AccountReporter:
                         position: 'bottom',
                         labels: {{ 
                             color: '#94a3b8', 
-                            boxWidth: 10,
-                            padding: 8,
-                            font: {{ family: 'Outfit', size: 11 }} 
+                            boxWidth: 8,
+                            padding: 6,
+                            font: {{ family: 'Outfit', size: 10 }} 
                         }}
                     }}
                 }},
                 scales: {{
                     x: {{
                         grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
-                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 10 }} }}
+                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 9 }} }}
                     }},
                     y: {{
                         grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
-                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 10 }} }}
+                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 9 }} }}
                     }}
                 }}
             }}
