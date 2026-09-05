@@ -462,6 +462,14 @@ class AccountReporter:
             }}
         }}
 
+        .chart-wrapper {{
+            display: none;
+        }}
+
+        .chart-wrapper.open {{
+            display: block;
+        }}
+
         .chart-container {{
             position: relative;
             height: 200px;
@@ -698,7 +706,18 @@ class AccountReporter:
             </div>
         </div>
 
-        <!-- Compact Account Rows (Collapsed / Minimized by Default) -->
+        <!-- 1. History Grouped by Day (First) -->
+        <div class="panel">
+            <div class="section-header">
+                <div class="section-title">📋 Lịch Sử Theo Ngày</div>
+                <button class="btn-toggle-all" id="toggleAllBtn" onclick="toggleAllDays()">Mở tất cả</button>
+            </div>
+            <div id="historyGroupedContainer">
+                <!-- Dynamic Day Cards -->
+            </div>
+        </div>
+
+        <!-- 2. Compact Account Rows (Collapsed / Minimized by Default) -->
         <div class="section-header" style="cursor: pointer; user-select: none;" onclick="toggleAccounts()">
             <div class="section-title">
                 <span>👤 Trạng Thái Tài Khoản ({len(latest_accounts)})</span>
@@ -710,24 +729,19 @@ class AccountReporter:
             <!-- Dynamic Compact Account Rows -->
         </div>
 
-        <!-- Chart Panel -->
+        <!-- 3. Chart Panel (Collapsed / Minimized by Default) -->
         <div class="panel">
-            <div class="section-header">
-                <div class="section-title">📈 Tăng Trưởng Điểm</div>
+            <div class="section-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleChart()">
+                <div class="section-title">
+                    <span>📈 Tăng Trưởng Điểm</span>
+                    <svg class="chevron" id="chartChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+                <button class="btn-toggle-all" id="toggleChartBtn" onclick="event.stopPropagation(); toggleChart();">Mở rộng</button>
             </div>
-            <div class="chart-container">
-                <canvas id="pointsChart"></canvas>
-            </div>
-        </div>
-
-        <!-- History Grouped by Day (Collapsed by Default) -->
-        <div class="panel">
-            <div class="section-header">
-                <div class="section-title">📋 Lịch Sử Theo Ngày</div>
-                <button class="btn-toggle-all" id="toggleAllBtn" onclick="toggleAllDays()">Mở tất cả</button>
-            </div>
-            <div id="historyGroupedContainer">
-                <!-- Dynamic Day Cards -->
+            <div class="chart-wrapper" id="chartWrapper">
+                <div class="chart-container" style="margin-top: 0.75rem;">
+                    <canvas id="pointsChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -841,6 +855,20 @@ class AccountReporter:
             }});
         }}
 
+        let chartInstance = null;
+
+        function toggleChart() {{
+            const wrapper = document.getElementById('chartWrapper');
+            const btn = document.getElementById('toggleChartBtn');
+            const chevron = document.getElementById('chartChevron');
+            const isOpen = wrapper.classList.toggle('open');
+            if (btn) btn.textContent = isOpen ? 'Thu gọn' : 'Mở rộng';
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (isOpen && chartInstance) {{
+                setTimeout(() => chartInstance.resize(), 60);
+            }}
+        }}
+
         function toggleAccounts() {{
             const list = document.getElementById('accountsList');
             const btn = document.getElementById('toggleAccsBtn');
@@ -899,7 +927,7 @@ class AccountReporter:
             }};
         }});
 
-        new Chart(ctx, {{
+        chartInstance = new Chart(ctx, {{
             type: 'line',
             data: {{ labels: labels, datasets: datasets }},
             options: {{
