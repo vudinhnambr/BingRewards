@@ -2,12 +2,12 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bảng Tổng Quan Microsoft Rewards</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -31,17 +31,18 @@
             margin: 0;
             padding: 0;
             font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             background: radial-gradient(circle at top right, #1e1b4b 0%, #0b0f19 50%, #030712 100%);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 2rem 1rem;
+            padding: 1rem 0.75rem 2rem;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
@@ -50,72 +51,83 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
             border-bottom: 1px solid var(--card-border);
         }
 
         .header-title h1 {
-            font-size: 2rem;
+            font-size: 1.35rem;
             font-weight: 800;
             background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
+            line-height: 1.2;
         }
 
         .header-title p {
             color: var(--text-muted);
-            margin-top: 0.25rem;
-            font-size: 0.95rem;
+            margin-top: 0.2rem;
+            font-size: 0.8rem;
         }
 
         .btn-refresh {
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             color: white;
             border: none;
-            padding: 0.65rem 1.25rem;
-            border-radius: 0.75rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 0.6rem;
             font-weight: 600;
+            font-size: 0.8rem;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            gap: 0.4rem;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: all 0.2s;
         }
 
-        .btn-refresh:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        .btn-refresh:active {
+            transform: scale(0.96);
         }
 
-        /* Stats Grid */
+        /* Stats Grid (2x2 on Mobile, 4x1 on Desktop) */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+            margin-bottom: 1.25rem;
+        }
+
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+            }
+            body {
+                padding: 1.75rem 1.5rem 3rem;
+            }
+            .header-title h1 {
+                font-size: 1.85rem;
+            }
+            .header-title p {
+                font-size: 0.95rem;
+            }
         }
 
         .stat-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             backdrop-filter: blur(12px);
-            border-radius: 1rem;
-            padding: 1.5rem;
+            border-radius: 0.85rem;
+            padding: 0.9rem 1rem;
             position: relative;
             overflow: hidden;
-            transition: transform 0.2s ease, border-color 0.2s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(255, 255, 255, 0.2);
         }
 
         .stat-card::before {
@@ -134,75 +146,103 @@
 
         .stat-label {
             color: var(--text-muted);
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: 0.7rem;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
         }
 
         .stat-value {
-            font-size: 2.25rem;
+            font-size: 1.45rem;
             font-weight: 800;
-            margin: 0.5rem 0 0.25rem;
+            margin: 0.35rem 0 0.15rem;
             letter-spacing: -0.02em;
         }
 
         .stat-sub {
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.72rem;
         }
 
-        /* Accounts Cards Section */
-        .section-title {
-            font-size: 1.35rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+        /* Section Headings */
+        .section-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 0.85rem;
             gap: 0.5rem;
         }
 
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Accounts Grid */
         .accounts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr;
+            gap: 0.65rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .accounts-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.85rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .accounts-grid {
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                gap: 1rem;
+            }
         }
 
         .account-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             backdrop-filter: blur(12px);
-            border-radius: 1rem;
-            padding: 1.5rem;
+            border-radius: 0.85rem;
+            padding: 0.9rem 1.1rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            transition: border-color 0.2s;
         }
 
         .acc-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.65rem;
+            gap: 0.5rem;
         }
 
         .acc-name {
-            font-size: 1.25rem;
+            font-size: 0.95rem;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .acc-badge {
             background: rgba(16, 185, 129, 0.15);
             color: var(--accent-green);
-            padding: 0.25rem 0.65rem;
+            padding: 0.2rem 0.55rem;
             border-radius: 9999px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
             border: 1px solid rgba(16, 185, 129, 0.3);
+            white-space: nowrap;
         }
 
         .acc-badge.error {
@@ -211,89 +251,243 @@
             border-color: rgba(239, 68, 68, 0.3);
         }
 
+        .acc-badge.wait {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
         .acc-points-box {
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
+            align-items: center;
             background: rgba(15, 23, 42, 0.6);
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            border-radius: 0.65rem;
+            padding: 0.65rem 0.9rem;
+            margin-bottom: 0.65rem;
         }
 
         .acc-pts-large {
-            font-size: 1.85rem;
+            font-size: 1.45rem;
             font-weight: 800;
             color: #38bdf8;
         }
 
         .acc-gained {
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 700;
             color: var(--accent-green);
         }
 
         .acc-footer {
             display: flex;
             justify-content: space-between;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 0.75rem;
+            padding-top: 0.5rem;
         }
 
-        /* Table & Chart Container */
+        /* Panel Container */
         .panel {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             backdrop-filter: blur(12px);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
+            border-radius: 0.85rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .panel {
+                padding: 1.35rem;
+            }
         }
 
         .chart-container {
             position: relative;
-            height: 320px;
+            height: 220px;
             width: 100%;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 280px;
+            }
+        }
+
+        /* History Accordion (Collapsed by Default) */
+        .btn-toggle-all {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 0.25rem 0.65rem;
+            border-radius: 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-toggle-all:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+        }
+
+        .day-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            margin-bottom: 0.65rem;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.95rem;
+            cursor: pointer;
+            background: rgba(30, 41, 59, 0.4);
+            user-select: none;
+            transition: background 0.2s;
+            gap: 0.5rem;
+        }
+
+        .day-header:hover, .day-header:active {
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .day-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
             font-size: 0.9rem;
         }
 
-        th {
-            color: var(--text-muted);
+        .day-badges {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .badge-pill {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
             font-weight: 600;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--card-border);
+        }
+
+        .badge-gained {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-runs {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-today {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.3rem;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
         }
 
-        td {
-            padding: 0.85rem 1rem;
+        .chevron {
+            transition: transform 0.2s ease;
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .day-card.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .day-content {
+            display: none;
+            padding: 0.4rem 0.65rem 0.65rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .day-card.open .day-content {
+            display: block;
+        }
+
+        /* Clean Mobile Run List */
+        .run-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.55rem 0.4rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.8rem;
+            gap: 0.5rem;
         }
 
-        tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+        .run-item:last-child {
+            border-bottom: none;
         }
 
-        .mono {
+        .run-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }
+
+        .run-acc {
+            font-weight: 600;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .run-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
             font-family: 'JetBrains Mono', monospace;
         }
 
-        .status-pill {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.35rem;
-            font-size: 0.75rem;
+        .run-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        .run-pts {
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
+            color: #38bdf8;
+            font-size: 0.85rem;
+        }
+
+        .run-gained {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #34d399;
+        }
+
+        .status-pill {
+            padding: 0.15rem 0.45rem;
+            border-radius: 0.35rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
         .status-success {
@@ -305,88 +499,6 @@
             background: rgba(239, 68, 68, 0.15);
             color: #f87171;
         }
-
-        /* Day Accordion Styles */
-        .day-card {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--card-border);
-            border-radius: 0.85rem;
-            margin-bottom: 0.85rem;
-            overflow: hidden;
-            transition: all 0.2s ease;
-        }
-        .day-card:hover {
-            border-color: rgba(255, 255, 255, 0.18);
-        }
-        .day-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.9rem 1.25rem;
-            cursor: pointer;
-            background: rgba(30, 41, 59, 0.5);
-            user-select: none;
-            transition: background 0.2s;
-        }
-        .day-header:hover {
-            background: rgba(30, 41, 59, 0.85);
-        }
-        .day-title {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        .day-badges {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .badge-pill {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.65rem;
-            border-radius: 9999px;
-            font-weight: 600;
-        }
-        .badge-gained {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.35);
-        }
-        .badge-runs {
-            background: rgba(59, 130, 246, 0.2);
-            color: #60a5fa;
-            border: 1px solid rgba(59, 130, 246, 0.35);
-        }
-        .badge-today {
-            background: linear-gradient(135deg, #06b6d4, #3b82f6);
-            color: white;
-            font-size: 0.7rem;
-            padding: 0.15rem 0.5rem;
-            border-radius: 0.35rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .chevron {
-            transition: transform 0.25s ease;
-            width: 18px;
-            height: 18px;
-            color: var(--text-muted);
-        }
-        .day-card.open .chevron {
-            transform: rotate(180deg);
-        }
-        .day-content {
-            display: none;
-            padding: 0.25rem 0 0.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .day-card.open .day-content {
-            display: block;
-        }
     </style>
 </head>
 <body>
@@ -394,60 +506,64 @@
         <!-- Header -->
         <div class="header">
             <div class="header-title">
-                <h1>💎 Microsoft Rewards Dashboard</h1>
-                <p>Theo dõi điểm thưởng & chuỗi nhiệm vụ tự động hàng ngày</p>
+                <h1>💎 MS Rewards</h1>
+                <p>Theo dõi điểm thưởng & chuỗi tự động</p>
             </div>
             <div>
                 <button class="btn-refresh" onclick="location.reload()">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    Làm mới dữ liệu
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Làm mới
                 </button>
             </div>
         </div>
 
-        <!-- Stats Overview -->
+        <!-- Stats 2x2 Grid -->
         <div class="stats-grid">
             <div class="stat-card c-blue">
-                <div class="stat-label">Tổng Điểm Tất Cả Tài Khoản</div>
-                <div class="stat-value">1,235</div>
-                <div class="stat-sub">💎 Điểm khả dụng tích lũy</div>
+                <div class="stat-label">Tổng Điểm</div>
+                <div class="stat-value">1,395</div>
+                <div class="stat-sub">💎 Tích lũy khả dụng</div>
             </div>
             <div class="stat-card c-green">
-                <div class="stat-label">Điểm Cày Được Hôm Nay</div>
-                <div class="stat-value">+0</div>
-                <div class="stat-sub">🚀 Tăng trưởng trong ngày</div>
+                <div class="stat-label">Hôm Nay</div>
+                <div class="stat-value">+160</div>
+                <div class="stat-sub">🚀 Điểm mới cày</div>
             </div>
             <div class="stat-card c-purple">
-                <div class="stat-label">Số Tài Khoản Hoạt Động</div>
+                <div class="stat-label">Tài Khoản</div>
                 <div class="stat-value">7</div>
-                <div class="stat-sub">👥 Đang tự động cày điểm</div>
+                <div class="stat-sub">👥 Đang hoạt động</div>
             </div>
             <div class="stat-card c-yellow">
-                <div class="stat-label">Chuỗi Ngày Cao Nhất (Streak)</div>
-                <div class="stat-value">🔥 0</div>
-                <div class="stat-sub">📅 Ngày duy trì liên tiếp</div>
+                <div class="stat-label">Streak Max</div>
+                <div class="stat-value">🔥 1</div>
+                <div class="stat-sub">📅 Ngày duy trì</div>
             </div>
         </div>
 
         <!-- Account Cards -->
-        <div class="section-title">👤 Trạng Thái Từng Tài Khoản</div>
+        <div class="section-header">
+            <div class="section-title">👤 Trạng Thái Tài Khoản</div>
+        </div>
         <div class="accounts-grid" id="accountsList">
             <!-- Dynamic Account Cards -->
         </div>
 
         <!-- Chart Panel -->
         <div class="panel">
-            <div class="section-title">📈 Lịch Sử Tăng Trưởng Điểm Thưởng</div>
+            <div class="section-header">
+                <div class="section-title">📈 Tăng Trưởng Điểm</div>
+            </div>
             <div class="chart-container">
                 <canvas id="pointsChart"></canvas>
             </div>
         </div>
 
-        <!-- Detailed History (Grouped by Day) -->
+        <!-- History Grouped by Day (Collapsed by Default) -->
         <div class="panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                <div class="section-title" style="margin-bottom: 0;">📋 Nhật Ký Chạy Theo Ngày</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Bấm vào từng ngày để xem chi tiết các lần chạy</div>
+            <div class="section-header">
+                <div class="section-title">📋 Lịch Sử Theo Ngày</div>
+                <button class="btn-toggle-all" id="toggleAllBtn" onclick="toggleAllDays()">Mở tất cả</button>
             </div>
             <div id="historyGroupedContainer">
                 <!-- Dynamic Day Cards -->
@@ -456,31 +572,34 @@
     </div>
 
     <script>
-        const historyData = [{"account": "vudinhnambr@gmail.com", "start_points": "391", "end_points": "394", "gained": 3, "streak": "5", "status": "Thành công", "timestamp": "04/09/2026 16:34:21", "date": "04/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "156", "end_points": "186", "gained": 30, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:40:00", "date": "04/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:41:00", "date": "04/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "0", "end_points": "125", "gained": 125, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:42:00", "date": "04/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "0", "end_points": "125", "gained": 125, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:43:00", "date": "04/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "0", "end_points": "125", "gained": 125, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:48:00", "date": "04/09/2026"}, {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 17:57:50", "date": "04/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:05:59", "date": "04/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:13:44", "date": "04/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:25:08", "date": "04/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:36:28", "date": "04/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:48:03", "date": "04/09/2026"}, {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:07:42", "date": "05/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:15:17", "date": "05/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:22:37", "date": "05/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:30:11", "date": "05/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:38:00", "date": "05/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:45:44", "date": "05/09/2026"}, {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:26:19", "date": "05/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:33:49", "date": "05/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:41:59", "date": "05/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:50:08", "date": "05/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:57:46", "date": "05/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 08:05:21", "date": "05/09/2026"}];
-        const latestAccounts = {"vudinhnambr@gmail.com": {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:26:19", "date": "05/09/2026"}, "vudinhnambrvt@gmail.com": {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:33:49", "date": "05/09/2026"}, "vudinhnambr1@gmail.com": {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:41:59", "date": "05/09/2026"}, "vudinhnambr2@gmail.com": {"account": "vudinhnambr2@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:50:08", "date": "05/09/2026"}, "vudinhnambr3@gmail.com": {"account": "vudinhnambr3@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:57:46", "date": "05/09/2026"}, "csb.qaqc@gmail.com": {"account": "csb.qaqc@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 08:05:21", "date": "05/09/2026"}, "vudinhnambr4@gmail.com": {"account": "vudinhnambr4@gmail.com", "start_points": "0", "end_points": "0", "gained": 0, "streak": "0", "status": "Chờ chạy", "timestamp": "Đang cào / Chưa hoàn thành", "date": ""}};
+        const historyData = [{"account": "vudinhnambr@gmail.com", "start_points": "391", "end_points": "394", "gained": 3, "streak": "5", "status": "Thành công", "timestamp": "04/09/2026 16:34:21", "date": "04/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "156", "end_points": "186", "gained": 30, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:40:00", "date": "04/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:41:00", "date": "04/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "0", "end_points": "125", "gained": 125, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:42:00", "date": "04/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "0", "end_points": "125", "gained": 125, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:43:00", "date": "04/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "0", "end_points": "125", "gained": 125, "streak": "1", "status": "Thành công", "timestamp": "04/09/2026 16:48:00", "date": "04/09/2026"}, {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 17:57:50", "date": "04/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:05:59", "date": "04/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:13:44", "date": "04/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:25:08", "date": "04/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:36:28", "date": "04/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "125", "end_points": "160", "gained": 35, "streak": "0", "status": "Thành công", "timestamp": "04/09/2026 18:48:03", "date": "04/09/2026"}, {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:07:42", "date": "05/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:15:17", "date": "05/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:22:37", "date": "05/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:30:11", "date": "05/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:38:00", "date": "05/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 00:45:44", "date": "05/09/2026"}, {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:26:19", "date": "05/09/2026"}, {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:33:49", "date": "05/09/2026"}, {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:41:59", "date": "05/09/2026"}, {"account": "vudinhnambr2@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:50:08", "date": "05/09/2026"}, {"account": "vudinhnambr3@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:57:46", "date": "05/09/2026"}, {"account": "csb.qaqc@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 08:05:21", "date": "05/09/2026"}, {"account": "vudinhnambr4@gmail.com", "start_points": "0", "end_points": "160", "gained": 160, "streak": "1", "status": "Thành công", "timestamp": "05/09/2026 10:15:00", "date": "05/09/2026"}];
+        const latestAccounts = {"vudinhnambr@gmail.com": {"account": "vudinhnambr@gmail.com", "start_points": "409", "end_points": "409", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:26:19", "date": "05/09/2026"}, "vudinhnambrvt@gmail.com": {"account": "vudinhnambrvt@gmail.com", "start_points": "186", "end_points": "186", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:33:49", "date": "05/09/2026"}, "vudinhnambr1@gmail.com": {"account": "vudinhnambr1@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:41:59", "date": "05/09/2026"}, "vudinhnambr2@gmail.com": {"account": "vudinhnambr2@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:50:08", "date": "05/09/2026"}, "vudinhnambr3@gmail.com": {"account": "vudinhnambr3@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 07:57:46", "date": "05/09/2026"}, "csb.qaqc@gmail.com": {"account": "csb.qaqc@gmail.com", "start_points": "160", "end_points": "160", "gained": 0, "streak": "0", "status": "Thành công", "timestamp": "05/09/2026 08:05:21", "date": "05/09/2026"}, "vudinhnambr4@gmail.com": {"account": "vudinhnambr4@gmail.com", "start_points": "0", "end_points": "160", "gained": 160, "streak": "1", "status": "Thành công", "timestamp": "05/09/2026 10:15:00", "date": "05/09/2026"}};
 
         // Render Account Cards
         const accContainer = document.getElementById('accountsList');
         accContainer.innerHTML = '';
 
         if (Object.keys(latestAccounts).length === 0) {
-            accContainer.innerHTML = '<div style="color: var(--text-muted); grid-column: 1/-1;">Chưa có dữ liệu chạy tài khoản. Dữ liệu sẽ tự động xuất hiện sau lần chạy đầu tiên.</div>';
+            accContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Chưa có dữ liệu tài khoản.</div>';
         } else {
             for (const [accName, acc] of Object.entries(latestAccounts)) {
                 const isSuccess = acc.status === 'Thành công';
+                const isWait = acc.status === 'Chờ chạy';
+                const badgeClass = isSuccess ? '' : (isWait ? 'wait' : 'error');
+                
                 const card = document.createElement('div');
                 card.className = 'account-card';
                 card.innerHTML = `
                     <div>
                         <div class="acc-header">
-                            <div class="acc-name">
+                            <div class="acc-name" title="${accName}">
                                 <span>👤</span> ${accName}
                             </div>
-                            <span class="acc-badge ${isSuccess ? '' : 'error'}">${acc.status}</span>
+                            <span class="acc-badge ${badgeClass}">${acc.status}</span>
                         </div>
                         <div class="acc-points-box">
                             <div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">ĐIỂM HIỆN TẠI</div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">ĐIỂM HIỆN TẠI</div>
                                 <div class="acc-pts-large">${acc.end_points || '0'}</div>
                             </div>
                             <div class="acc-gained">+${acc.gained || 0} pts</div>
@@ -495,12 +614,12 @@
             }
         }
 
-        // Render Day-Grouped History
+        // Render Day-Grouped History (Collapsed by Default)
         const historyContainer = document.getElementById('historyGroupedContainer');
         historyContainer.innerHTML = '';
 
         if (!historyData || historyData.length === 0) {
-            historyContainer.innerHTML = '<div style="color: var(--text-muted); padding: 1rem 0;">Chưa có nhật ký chạy nào được ghi lại.</div>';
+            historyContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">Chưa có nhật ký nào.</div>';
         } else {
             const historyByDate = {};
             historyData.forEach(item => {
@@ -515,69 +634,72 @@
                 const runs = historyByDate[dateKey];
                 const totalGained = runs.reduce((acc, cur) => acc + (parseInt(cur.gained) || 0), 0);
                 const successCount = runs.filter(r => r.status === 'Thành công').length;
-                const isLatest = (index === 0);
+                const isToday = (index === 0);
 
-                let rowsHtml = '';
+                let listHtml = '';
                 [...runs].reverse().forEach(item => {
                     const isSuccess = item.status === 'Thành công';
-                    rowsHtml += `
-                        <tr>
-                            <td class="mono" style="color: var(--text-muted);">${item.timestamp}</td>
-                            <td><b>${item.account}</b></td>
-                            <td class="mono">${item.start_points}</td>
-                            <td class="mono" style="color: #38bdf8; font-weight: 600;">${item.end_points}</td>
-                            <td class="mono" style="color: #34d399; font-weight: 600;">+${item.gained}</td>
-                            <td>🔥 ${item.streak} ngày</td>
-                            <td>
-                                <span class="status-pill ${isSuccess ? 'status-success' : 'status-fail'}">${item.status}</span>
-                            </td>
-                        </tr>
+                    const timeOnly = item.timestamp ? (item.timestamp.split(' ')[1] || item.timestamp) : '';
+                    listHtml += `
+                        <div class="run-item">
+                            <div class="run-info">
+                                <div class="run-acc">${item.account}</div>
+                                <div class="run-time">${timeOnly} • Gốc: ${item.start_points}</div>
+                            </div>
+                            <div class="run-stats">
+                                <div>
+                                    <div class="run-pts">${item.end_points}</div>
+                                    <div class="run-gained">+${item.gained}</div>
+                                </div>
+                                <div>
+                                    <span class="status-pill ${isSuccess ? 'status-success' : 'status-fail'}">${item.status}</span>
+                                    <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">🔥 ${item.streak}d</div>
+                                </div>
+                            </div>
+                        </div>
                     `;
                 });
 
                 const dayCard = document.createElement('div');
-                dayCard.className = `day-card ${isLatest ? 'open' : ''}`;
+                // Collapsed by default
+                dayCard.className = 'day-card';
                 dayCard.innerHTML = `
                     <div class="day-header" onclick="this.parentElement.classList.toggle('open')">
                         <div class="day-title">
                             <span>📅 ${dateKey}</span>
-                            ${isLatest ? '<span class="badge-today">MỚI NHẤT</span>' : ''}
+                            ${isToday ? '<span class="badge-today">Hôm nay</span>' : ''}
                         </div>
                         <div class="day-badges">
                             <span class="badge-pill badge-gained">+${totalGained.toLocaleString()} pts</span>
-                            <span class="badge-pill badge-runs">${runs.length} lượt (${successCount} thành công)</span>
+                            <span class="badge-pill badge-runs">${runs.length} lượt (${successCount} OK)</span>
                             <svg class="chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
                     <div class="day-content">
-                        <div style="overflow-x: auto;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Thời Gian</th>
-                                        <th>Tài Khoản</th>
-                                        <th>Điểm Ban Đầu</th>
-                                        <th>Điểm Sau Khi Chạy</th>
-                                        <th>Điểm Đã Cày</th>
-                                        <th>Chuỗi (Streak)</th>
-                                        <th>Trạng Thái</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
-                        </div>
+                        ${listHtml}
                     </div>
                 `;
                 historyContainer.appendChild(dayCard);
             });
         }
 
+        function toggleAllDays() {
+            const cards = document.querySelectorAll('.day-card');
+            const btn = document.getElementById('toggleAllBtn');
+            const anyClosed = Array.from(cards).some(c => !c.classList.contains('open'));
+            
+            cards.forEach(c => {
+                if (anyClosed) {
+                    c.classList.add('open');
+                } else {
+                    c.classList.remove('open');
+                }
+            });
+            btn.textContent = anyClosed ? 'Thu gọn tất cả' : 'Mở tất cả';
+        }
+
         // Render Chart
         const ctx = document.getElementById('pointsChart').getContext('2d');
-        
-        // Group history by date and account
         const datesSet = new Set();
         const accDatasets = {};
 
@@ -591,22 +713,22 @@
             accDatasets[acc][item.date] = pts;
         });
 
-        const labels = Array.from(datesSet).slice(-10);
-        const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1'];
+        const labels = Array.from(datesSet).slice(-7);
+        const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
         
         const datasets = Object.keys(accDatasets).map((acc, index) => {
             const color = colors[index % colors.length];
             const data = labels.map(d => accDatasets[acc][d] || null);
             return {
-                label: acc,
+                label: acc.split('@')[0], // Short name for mobile chart legend
                 data: data,
                 borderColor: color,
-                backgroundColor: color + '20',
-                borderWidth: 3,
+                backgroundColor: color + '15',
+                borderWidth: 2.5,
                 tension: 0.35,
-                fill: true,
-                pointRadius: 4,
-                pointHoverRadius: 6
+                fill: false,
+                pointRadius: 3,
+                pointHoverRadius: 5
             };
         });
 
@@ -618,17 +740,23 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#94a3b8', font: { family: 'Outfit', size: 12 } }
+                        position: 'bottom',
+                        labels: { 
+                            color: '#94a3b8', 
+                            boxWidth: 10,
+                            padding: 8,
+                            font: { family: 'Outfit', size: 11 } 
+                        }
                     }
                 },
                 scales: {
                     x: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#94a3b8', font: { family: 'Outfit' } }
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: { color: '#94a3b8', font: { family: 'Outfit', size: 10 } }
                     },
                     y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#94a3b8', font: { family: 'Outfit' } }
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: { color: '#94a3b8', font: { family: 'Outfit', size: 10 } }
                     }
                 }
             }
