@@ -83,6 +83,25 @@ class AccountReporter:
         history = cls.load_history()
         accounts_map = {}
 
+        # First populate from config.json to show all configured accounts immediately
+        try:
+            from src.config import BotConfig
+            cfg = BotConfig.load()
+            if cfg.account_labels:
+                for label, name in cfg.account_labels.items():
+                    accounts_map[name] = {
+                        "account": name,
+                        "start_points": "0",
+                        "end_points": "0",
+                        "gained": 0,
+                        "streak": "0",
+                        "status": "Chờ chạy",
+                        "timestamp": "Đang cào / Chưa hoàn thành",
+                        "date": ""
+                    }
+        except Exception:
+            pass
+
         for item in history:
             acc = item.get("account", "Account 1")
             accounts_map[acc] = item  # Latest entry overrides
