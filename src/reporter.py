@@ -449,6 +449,88 @@ class AccountReporter:
             background: rgba(239, 68, 68, 0.15);
             color: #f87171;
         }}
+
+        /* Day Accordion Styles */
+        .day-card {{
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 0.85rem;
+            margin-bottom: 0.85rem;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }}
+        .day-card:hover {{
+            border-color: rgba(255, 255, 255, 0.18);
+        }}
+        .day-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 1.25rem;
+            cursor: pointer;
+            background: rgba(30, 41, 59, 0.5);
+            user-select: none;
+            transition: background 0.2s;
+        }}
+        .day-header:hover {{
+            background: rgba(30, 41, 59, 0.85);
+        }}
+        .day-title {{
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 700;
+            font-size: 1rem;
+        }}
+        .day-badges {{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }}
+        .badge-pill {{
+            font-size: 0.75rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }}
+        .badge-gained {{
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }}
+        .badge-runs {{
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }}
+        .badge-today {{
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.35rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }}
+        .chevron {{
+            transition: transform 0.25s ease;
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+        }}
+        .day-card.open .chevron {{
+            transform: rotate(180deg);
+        }}
+        .day-content {{
+            display: none;
+            padding: 0.25rem 0 0.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }}
+        .day-card.open .day-content {{
+            display: block;
+        }}
     </style>
 </head>
 <body>
@@ -505,26 +587,14 @@ class AccountReporter:
             </div>
         </div>
 
-        <!-- Detailed History Table -->
+        <!-- Detailed History (Grouped by Day) -->
         <div class="panel">
-            <div class="section-title">📋 Nhật Ký Chạy Gần Đây</div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Thời Gian</th>
-                            <th>Tài Khoản</th>
-                            <th>Điểm Ban Đầu</th>
-                            <th>Điểm Sau Khi Chạy</th>
-                            <th>Điểm Đã Cày</th>
-                            <th>Chuỗi (Streak)</th>
-                            <th>Trạng Thái</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTableBody">
-                        <!-- Dynamic Rows -->
-                    </tbody>
-                </table>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <div class="section-title" style="margin-bottom: 0;">📋 Nhật Ký Chạy Theo Ngày</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Bấm vào từng ngày để xem chi tiết các lần chạy</div>
+            </div>
+            <div id="historyGroupedContainer">
+                <!-- Dynamic Day Cards -->
             </div>
         </div>
     </div>
@@ -569,27 +639,84 @@ class AccountReporter:
             }}
         }}
 
-        // Render History Table
-        const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '';
-        const reversedHistory = [...historyData].reverse().slice(0, 30);
+        // Render Day-Grouped History
+        const historyContainer = document.getElementById('historyGroupedContainer');
+        historyContainer.innerHTML = '';
 
-        reversedHistory.forEach(item => {{
-            const isSuccess = item.status === 'Thành công';
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="mono" style="color: var(--text-muted);">${{item.timestamp}}</td>
-                <td><b>${{item.account}}</b></td>
-                <td class="mono">${{item.start_points}}</td>
-                <td class="mono" style="color: #38bdf8; font-weight: 600;">${{item.end_points}}</td>
-                <td class="mono" style="color: #34d399; font-weight: 600;">+${{item.gained}}</td>
-                <td>🔥 ${{item.streak}} ngày</td>
-                <td>
-                    <span class="status-pill ${{isSuccess ? 'status-success' : 'status-fail'}}">${{item.status}}</span>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        }});
+        if (!historyData || historyData.length === 0) {{
+            historyContainer.innerHTML = '<div style="color: var(--text-muted); padding: 1rem 0;">Chưa có nhật ký chạy nào được ghi lại.</div>';
+        }} else {{
+            const historyByDate = {{}};
+            historyData.forEach(item => {{
+                const d = item.date || (item.timestamp ? item.timestamp.split(' ')[0] : 'Chưa phân loại');
+                if (!historyByDate[d]) historyByDate[d] = [];
+                historyByDate[d].push(item);
+            }});
+
+            const datesSorted = Object.keys(historyByDate).reverse();
+
+            datesSorted.forEach((dateKey, index) => {{
+                const runs = historyByDate[dateKey];
+                const totalGained = runs.reduce((acc, cur) => acc + (parseInt(cur.gained) || 0), 0);
+                const successCount = runs.filter(r => r.status === 'Thành công').length;
+                const isLatest = (index === 0);
+
+                let rowsHtml = '';
+                [...runs].reverse().forEach(item => {{
+                    const isSuccess = item.status === 'Thành công';
+                    rowsHtml += `
+                        <tr>
+                            <td class="mono" style="color: var(--text-muted);">${{item.timestamp}}</td>
+                            <td><b>${{item.account}}</b></td>
+                            <td class="mono">${{item.start_points}}</td>
+                            <td class="mono" style="color: #38bdf8; font-weight: 600;">${{item.end_points}}</td>
+                            <td class="mono" style="color: #34d399; font-weight: 600;">+${{item.gained}}</td>
+                            <td>🔥 ${{item.streak}} ngày</td>
+                            <td>
+                                <span class="status-pill ${{isSuccess ? 'status-success' : 'status-fail'}}">${{item.status}}</span>
+                            </td>
+                        </tr>
+                    `;
+                }});
+
+                const dayCard = document.createElement('div');
+                dayCard.className = `day-card ${{isLatest ? 'open' : ''}}`;
+                dayCard.innerHTML = `
+                    <div class="day-header" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="day-title">
+                            <span>📅 ${{dateKey}}</span>
+                            ${{isLatest ? '<span class="badge-today">MỚI NHẤT</span>' : ''}}
+                        </div>
+                        <div class="day-badges">
+                            <span class="badge-pill badge-gained">+${{totalGained.toLocaleString()}} pts</span>
+                            <span class="badge-pill badge-runs">${{runs.length}} lượt (${{successCount}} thành công)</span>
+                            <svg class="chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="day-content">
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Thời Gian</th>
+                                        <th>Tài Khoản</th>
+                                        <th>Điểm Ban Đầu</th>
+                                        <th>Điểm Sau Khi Chạy</th>
+                                        <th>Điểm Đã Cày</th>
+                                        <th>Chuỗi (Streak)</th>
+                                        <th>Trạng Thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${{rowsHtml}}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                historyContainer.appendChild(dayCard);
+            }});
+        }}
 
         // Render Chart
         const ctx = document.getElementById('pointsChart').getContext('2d');
