@@ -691,7 +691,7 @@ class AccountReporter:
             </div>
             <div class="stat-card c-green">
                 <div class="stat-label">Hôm Nay</div>
-                <div class="stat-value">+{total_gained_today:,}</div>
+                <div class="stat-value" id="todayGainedStat">+{total_gained_today:,}</div>
                 <div class="stat-sub">🚀 Điểm mới cày</div>
             </div>
             <div class="stat-card c-purple">
@@ -750,6 +750,28 @@ class AccountReporter:
         const historyData = {history_json};
         const latestAccounts = {latest_json};
 
+        // Client Today Date (DD/MM/YYYY)
+        const clientNow = new Date();
+        const clientDay = String(clientNow.getDate()).padStart(2, '0');
+        const clientMonth = String(clientNow.getMonth() + 1).padStart(2, '0');
+        const clientYear = clientNow.getFullYear();
+        const clientTodayStr = `${{clientDay}}/${{clientMonth}}/${{clientYear}}`;
+
+        // Calculate dynamic today gained points from client perspective
+        let clientTodayGained = 0;
+        if (Array.isArray(historyData)) {{
+            historyData.forEach(item => {{
+                const d = item.date || (item.timestamp ? item.timestamp.split(' ')[0] : '');
+                if (d === clientTodayStr) {{
+                    clientTodayGained += (parseInt(item.gained) || 0);
+                }}
+            }});
+        }}
+        const todayStatEl = document.getElementById('todayGainedStat');
+        if (todayStatEl) {{
+            todayStatEl.textContent = '+' + clientTodayGained.toLocaleString();
+        }}
+
         // Render Compact Account Rows
         const accContainer = document.getElementById('accountsList');
         accContainer.innerHTML = '';
@@ -803,11 +825,11 @@ class AccountReporter:
 
             const datesSorted = Object.keys(historyByDate).reverse();
 
-            datesSorted.forEach((dateKey, index) => {{
+            datesSorted.forEach((dateKey) => {{
                 const runs = historyByDate[dateKey];
                 const totalGained = runs.reduce((acc, cur) => acc + (parseInt(cur.gained) || 0), 0);
                 const successCount = runs.filter(r => r.status === 'Thành công').length;
-                const isToday = (index === 0);
+                const isToday = (dateKey === clientTodayStr);
 
                 let rowsHtml = '';
                 [...runs].reverse().forEach(item => {{
