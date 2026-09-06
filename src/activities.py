@@ -224,11 +224,16 @@ class RewardsDashboard:
 
         # 3. All Earn / Quiz / Activity Cards (+500, +50, +30, +25, +15, +10, +5)
         try:
+            # Tìm thẻ qua text điểm HOẶC qua class cấu trúc thẻ của Microsoft
             card_badges = await self.page.query_selector_all(
-                "text='+500', text='+50', text='+30', text='+25', text='+15', text='+10', text='+5'"
+                "text='+500', text='+50', text='+30', text='+25', text='+15', text='+10', text='+5', "
+                ".mee-rewards-daily-set-item-content, .mee-rewards-more-activities-card-item, "
+                "mee-card, [class*='promo-card'], [class*='activity-card']"
             )
-            log_info(f"🔍 Quét thấy {len(card_badges)} mục điểm hoạt động trên trang...")
-
+            
+            # Lọc bỏ trùng lặp nếu query tìm ra nhiều element nằm lồng nhau
+            unique_cards = []
+            seen_elements = set()
             for badge in card_badges:
                 try:
                     card = await badge.evaluate_handle(r"""
@@ -248,7 +253,19 @@ class RewardsDashboard:
                     card_elem = card.as_element()
                     if not card_elem or not await card_elem.is_visible():
                         continue
+                        
+                    # Lấy class hoặc id hoặc html để định danh
+                    el_html = await card_elem.evaluate("(el) => el.outerHTML")
+                    if el_html not in seen_elements:
+                        seen_elements.add(el_html)
+                        unique_cards.append(card_elem)
+                except Exception:
+                    pass
 
+            log_info(f"🔍 Quét thấy {len(unique_cards)} mục điểm hoạt động trên trang...")
+
+            for card_elem in unique_cards:
+                try:
                     raw_text = (await card_elem.inner_text() or "").strip()
                     title = raw_text.split("\n")[0].strip()
                     if not title or title in self.processed_titles or "✓" in raw_text or "completed" in raw_text.lower():
