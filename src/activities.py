@@ -130,7 +130,7 @@ class RewardsDashboard:
 
         # 2. Activity Cards inside Side Drawer
         drawer_cards = await self.page.query_selector_all(
-            "div:has-text('+10'), div:has-text('+15'), div:has-text('+5'), div:has-text('+30'), div:has-text('+50')"
+            "text='+10', text='+15', text='+5', text='+30', text='+50'"
         )
         for badge in drawer_cards:
             try:
@@ -154,6 +154,11 @@ class RewardsDashboard:
                             continue
                         first_line = text.split("\n")[0].strip()
                         if first_line and not any(w in first_line for w in ["Daily set", "Your progress"]):
+                            # FIX: Prevent infinite loop by tracking processed drawer tasks
+                            if first_line in self.processed_titles:
+                                continue
+                            self.processed_titles.add(first_line)
+                            
                             log_info(f"-> Đang thực hiện nhiệm vụ trong ngăn kéo: '{first_line}'...")
                             await self._process_card(card_elem)
                             await random_delay(4.5, 8.5)
@@ -220,8 +225,7 @@ class RewardsDashboard:
         # 3. All Earn / Quiz / Activity Cards (+500, +50, +30, +25, +15, +10, +5)
         try:
             card_badges = await self.page.query_selector_all(
-                "div:has-text('+500'), div:has-text('+50'), div:has-text('+30'), div:has-text('+25'), "
-                "div:has-text('+15'), div:has-text('+10'), div:has-text('+5')"
+                "text='+500', text='+50', text='+30', text='+25', text='+15', text='+10', text='+5'"
             )
             log_info(f"🔍 Quét thấy {len(card_badges)} mục điểm hoạt động trên trang...")
 
