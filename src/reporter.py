@@ -165,8 +165,9 @@ class AccountReporter:
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
+    <!-- Chart.js & DataLabels Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         :root {{
             --bg-primary: #0b0f19;
@@ -482,6 +483,44 @@ class AccountReporter:
             }}
         }}
 
+        .chart-tabs {{
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.65rem;
+            margin-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.45rem;
+            overflow-x: auto;
+        }}
+
+        .chart-tab-btn {{
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.45rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }}
+
+        .chart-tab-btn:hover {{
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }}
+
+        .chart-tab-btn.active {{
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+            font-weight: 700;
+        }}
+
         /* History Accordion */
         .btn-toggle-all {{
             background: rgba(255, 255, 255, 0.06);
@@ -729,17 +768,21 @@ class AccountReporter:
             <!-- Dynamic Compact Account Rows -->
         </div>
 
-        <!-- 3. Chart Panel (Collapsed / Minimized by Default) -->
+        <!-- 3. Chart Panel (Open by Default) -->
         <div class="panel">
             <div class="section-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleChart()">
                 <div class="section-title">
-                    <span>📈 Tăng Trưởng Điểm</span>
-                    <svg class="chevron" id="chartChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <span>📈 Biểu Đồ Thống Kê Điểm</span>
+                    <svg class="chevron" id="chartChevron" style="transform: rotate(180deg);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
-                <button class="btn-toggle-all" id="toggleChartBtn" onclick="event.stopPropagation(); toggleChart();">Mở rộng</button>
+                <button class="btn-toggle-all" id="toggleChartBtn" onclick="event.stopPropagation(); toggleChart();">Thu gọn</button>
             </div>
-            <div class="chart-wrapper" id="chartWrapper">
-                <div class="chart-container" style="margin-top: 0.75rem;">
+            <div class="chart-wrapper open" id="chartWrapper">
+                <div class="chart-tabs">
+                    <button class="chart-tab-btn active" id="tabDailyTotal" onclick="switchChartTab('daily')">🚀 Tổng Điểm Kiếm / Ngày</button>
+                    <button class="chart-tab-btn" id="tabAccGrowth" onclick="switchChartTab('accounts')">👥 Tích Lũy Từng Tài Khoản</button>
+                </div>
+                <div class="chart-container" style="margin-top: 0.4rem;">
                     <canvas id="pointsChart"></canvas>
                 </div>
             </div>
@@ -749,6 +792,11 @@ class AccountReporter:
     <script>
         const historyData = {history_json};
         const latestAccounts = {latest_json};
+
+        // Register ChartDataLabels plugin
+        if (typeof ChartDataLabels !== 'undefined') {{
+            Chart.register(ChartDataLabels);
+        }}
 
         // Client Today Date (DD/MM/YYYY)
         const clientNow = new Date();
@@ -878,6 +926,7 @@ class AccountReporter:
         }}
 
         let chartInstance = null;
+        let currentChartTab = 'daily';
 
         function toggleChart() {{
             const wrapper = document.getElementById('chartWrapper');
@@ -915,69 +964,225 @@ class AccountReporter:
             btn.textContent = anyClosed ? 'Thu gọn tất cả' : 'Mở tất cả';
         }}
 
-        // Render Chart
-        const ctx = document.getElementById('pointsChart').getContext('2d');
-        const datesSet = new Set();
-        const accDatasets = {{}};
-
-        historyData.forEach(item => {{
-            datesSet.add(item.date);
-            const acc = item.account;
-            if (!accDatasets[acc]) {{
-                accDatasets[acc] = {{}};
+        function parseDateString(dStr) {{
+            if (!dStr) return new Date(0);
+            const parts = dStr.split('/');
+            if (parts.length === 3) {{
+                return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
             }}
-            const pts = parseInt(String(item.end_points).replace(/[,.]/g, '')) || 0;
-            accDatasets[acc][item.date] = pts;
-        }});
+            return new Date(dStr);
+        }}
 
-        const labels = Array.from(datesSet).slice(-7);
-        const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
-        
-        const datasets = Object.keys(accDatasets).map((acc, index) => {{
-            const color = colors[index % colors.length];
-            const data = labels.map(d => accDatasets[acc][d] || null);
-            return {{
-                label: acc.split('@')[0],
-                data: data,
-                borderColor: color,
-                backgroundColor: color + '15',
-                borderWidth: 2,
-                tension: 0.35,
-                fill: false,
-                pointRadius: 2.5,
-                pointHoverRadius: 4.5
-            }};
-        }});
+        function renderDailyChart() {{
+            if (chartInstance) {{
+                chartInstance.destroy();
+                chartInstance = null;
+            }}
 
-        chartInstance = new Chart(ctx, {{
-            type: 'line',
-            data: {{ labels: labels, datasets: datasets }},
-            options: {{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {{
-                    legend: {{
-                        position: 'bottom',
-                        labels: {{ 
-                            color: '#94a3b8', 
-                            boxWidth: 8,
-                            padding: 6,
-                            font: {{ family: 'Outfit', size: 10 }} 
+            const canvas = document.getElementById('pointsChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            // Calculate daily total gained points
+            const dailyTotals = {{}};
+            (historyData || []).forEach(item => {{
+                const d = item.date || (item.timestamp ? item.timestamp.split(' ')[0] : '');
+                if (d) {{
+                    if (!dailyTotals[d]) dailyTotals[d] = 0;
+                    dailyTotals[d] += (parseInt(item.gained) || 0);
+                }}
+            }});
+
+            const sortedDates = Object.keys(dailyTotals).sort((a, b) => parseDateString(a) - parseDateString(b));
+            const labels = sortedDates.slice(-10);
+            const dataValues = labels.map(d => dailyTotals[d] || 0);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+
+            const maxVal = Math.max(...dataValues, 50);
+
+            chartInstance = new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: labels,
+                    datasets: [{{
+                        label: 'Tổng điểm kiếm được',
+                        data: dataValues,
+                        borderColor: '#10b981',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        datalabels: {{
+                            display: true,
+                            align: 'top',
+                            anchor: 'end',
+                            offset: 6,
+                            color: '#34d399',
+                            font: {{
+                                family: 'JetBrains Mono',
+                                size: 11,
+                                weight: 'bold'
+                            }},
+                            formatter: function(value) {{
+                                return '+' + Number(value).toLocaleString();
+                            }}
+                        }}
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {{
+                        padding: {{
+                            top: 25,
+                            right: 20,
+                            left: 10,
+                            bottom: 5
+                        }}
+                    }},
+                    plugins: {{
+                        legend: {{
+                            display: false
+                        }},
+                        tooltip: {{
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleFont: {{ family: 'Outfit', size: 12, weight: 'bold' }},
+                            bodyFont: {{ family: 'JetBrains Mono', size: 12 }},
+                            padding: 10,
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {{
+                                label: (c) => `🚀 Tổng điểm: +${{Number(c.parsed.y).toLocaleString()}} pts`
+                            }}
+                        }}
+                    }},
+                    scales: {{
+                        x: {{
+                            grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
+                            ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 10 }} }}
+                        }},
+                        y: {{
+                            grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
+                            ticks: {{ 
+                                color: '#94a3b8', 
+                                font: {{ family: 'JetBrains Mono', size: 9 }},
+                                callback: (v) => '+' + v
+                            }},
+                            beginAtZero: true,
+                            suggestedMax: maxVal * 1.25
                         }}
                     }}
-                }},
-                scales: {{
-                    x: {{
-                        grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
-                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 9 }} }}
+                }}
+            }});
+        }}
+
+        function renderAccountsChart() {{
+            if (chartInstance) {{
+                chartInstance.destroy();
+                chartInstance = null;
+            }}
+
+            const canvas = document.getElementById('pointsChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            const datesSet = new Set();
+            const accDatasets = {{}};
+
+            historyData.forEach(item => {{
+                const d = item.date || (item.timestamp ? item.timestamp.split(' ')[0] : '');
+                if (!d) return;
+                datesSet.add(d);
+                const acc = item.account;
+                if (!accDatasets[acc]) {{
+                    accDatasets[acc] = {{}};
+                }}
+                const pts = parseInt(String(item.end_points).replace(/[,.]/g, '')) || 0;
+                accDatasets[acc][d] = pts;
+            }});
+
+            const labels = Array.from(datesSet).sort((a, b) => parseDateString(a) - parseDateString(b)).slice(-7);
+            const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
+            
+            const datasets = Object.keys(accDatasets).map((acc, index) => {{
+                const color = colors[index % colors.length];
+                const data = labels.map(d => accDatasets[acc][d] || null);
+                return {{
+                    label: acc.split('@')[0],
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color + '15',
+                    borderWidth: 2,
+                    tension: 0.35,
+                    fill: false,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    datalabels: {{
+                        display: false
+                    }}
+                }};
+            }});
+
+            chartInstance = new Chart(ctx, {{
+                type: 'line',
+                data: {{ labels: labels, datasets: datasets }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        datalabels: {{
+                            display: false
+                        }},
+                        legend: {{
+                            position: 'bottom',
+                            labels: {{ 
+                                color: '#94a3b8', 
+                                boxWidth: 8,
+                                padding: 6,
+                                font: {{ family: 'Outfit', size: 10 }} 
+                            }}
+                        }}
                     }},
-                    y: {{
-                        grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
-                        ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 9 }} }}
+                    scales: {{
+                        x: {{
+                            grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
+                            ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 9 }} }}
+                        }},
+                        y: {{
+                            grid: {{ color: 'rgba(255, 255, 255, 0.04)' }},
+                            ticks: {{ color: '#94a3b8', font: {{ family: 'Outfit', size: 9 }} }}
+                        }}
                     }}
                 }}
+            }});
+        }}
+
+        function switchChartTab(tab) {{
+            currentChartTab = tab;
+            const tabDaily = document.getElementById('tabDailyTotal');
+            const tabAcc = document.getElementById('tabAccGrowth');
+            if (tab === 'daily') {{
+                if (tabDaily) tabDaily.classList.add('active');
+                if (tabAcc) tabAcc.classList.remove('active');
+                renderDailyChart();
+            }} else {{
+                if (tabDaily) tabDaily.classList.remove('active');
+                if (tabAcc) tabAcc.classList.add('active');
+                renderAccountsChart();
             }}
-        }});
+        }}
+
+        // Initialize daily total chart on load
+        renderDailyChart();
     </script>
 </body>
 </html>
