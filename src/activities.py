@@ -134,8 +134,11 @@ class RewardsDashboard:
             ("Search now", "button:has-text('Search now'), button:has-text('Tìm kiếm ngay')")
         ]
 
+        drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
+        container = drawer if drawer else self.page
+
         for action_name, sel in action_selectors:
-            btn = await self.page.query_selector(sel)
+            btn = await container.query_selector(sel)
             if btn and await btn.is_visible():
                 log_info(f"✨ Bấm nút trong Side Drawer: '[bold cyan]{action_name}[/bold cyan]'")
                 try:
@@ -143,45 +146,7 @@ class RewardsDashboard:
                     await asyncio.sleep(3)
                 except Exception:
                     pass
-
-        # 2. Activity Cards inside Side Drawer
-        drawer_cards = await self.page.query_selector_all(
-            "text='+10', text='+15', text='+5', text='+30', text='+50', "
-            ".mee-rewards-daily-set-item-content, .mee-rewards-more-activities-card-item, "
-            "mee-card, [class*='promo-card'], [class*='activity-card']"
-        )
-        for badge in drawer_cards:
-            try:
-                card = await badge.evaluate_handle(r"""
-                    (el) => {
-                        let curr = el;
-                        while (curr && curr !== document.body) {
-                            if (curr.tagName === 'A' || curr.tagName === 'BUTTON' || curr.getAttribute('role') === 'button' || (curr.className && String(curr.className).includes('Card'))) {
-                                return curr;
-                            }
-                            curr = curr.parentElement;
-                        }
-                        return el;
-                    }
-                """)
-                if card:
-                    card_elem = card.as_element()
-                    if card_elem and await card_elem.is_visible():
-                        text = (await card_elem.inner_text() or "").strip()
-                        if "✓" in text or "completed" in text.lower():
-                            continue
-                        first_line = text.split("\n")[0].strip()
-                        if first_line and not any(w in first_line for w in ["Daily set", "Your progress"]):
-                            # FIX: Prevent infinite loop by tracking processed drawer tasks
-                            if first_line in self.processed_titles:
-                                continue
-                            self.processed_titles.add(first_line)
-                            
-                            log_info(f"-> Đang thực hiện nhiệm vụ trong ngăn kéo: '{first_line}'...")
-                            await self._process_card(card_elem)
-                            await random_delay(4.5, 8.5)
-            except Exception:
-                pass
+                break
 
         await self.close_any_drawer()
 
@@ -189,112 +154,97 @@ class RewardsDashboard:
         """Intelligently find and solve all uncompleted activity cards on current page."""
         # 1. Expand all accordions if collapsed
         try:
-            accordions = await self.page.query_selector_all(
-                "div[class*='cursor-pointer'], button[class*='w-full'], [role='button']"
-            )
-            for acc in accordions:
-                text = (await acc.text_content() or "").strip()
-                if any(k in text for k in ["Daily set", "Your activity", "Your progress", "Achievements", "Explore on Bing", "Keep earning", "Streaks"]):
-                    has_check = await acc.query_selector("svg[class*='check'], [class*='check'], span[class*='check']")
-                    if not has_check:
-                        try:
-                            await acc.click()
-                            await asyncio.sleep(0.8)
-                        except Exception:
-                            pass
+            await self.page.evaluate(r"""
+                () => {
+                    const accordions = Array.from(document.querySelectorAll("div[class*='cursor-pointer'], button, [role='button']"));
+                    for (const acc of accordions) {
+                        const text = (acc.innerText || acc.textContent || '').trim();
+                        if (['Daily set', 'Keep earning', 'Explore on Bing', 'Your activity', 'Get started'].some(k => text.startsWith(k))) {
+                            const isExpanded = acc.getAttribute('aria-expanded') === 'true';
+                            // If not already expanded, click to expand
+                            if (!isExpanded) {
+                                acc.click();
+                            }
+                        }
+                    }
+                }
+            """)
+            await asyncio.sleep(1.5)
         except Exception:
             pass
 
-        # 2. Interactive Tiles under Streaks / Your Activity (Bing, Daily Set, Edge, Mobile App, Visual Search)
+        # 2. Daily check-in on Bing App streak (in Your activity)
         try:
-            tiles = await self.page.query_selector_all(
-                "div:has-text('Bing Search Streak'), div:has-text('Daily Set Streak'), div:has-text('Edge Browsing Streak'), "
-                "div:has-text('Bing App Streak'), div:has-text('Mobile App'), div:has-text('Visual Search'), div:has-text('Edge')"
-            )
-            for tile in tiles:
-                try:
-                    tile_box = await tile.evaluate_handle(r"""
-                        (el) => {
-                            let curr = el;
-                            while (curr && curr !== document.body) {
-                                if (curr.tagName === 'A' || curr.tagName === 'BUTTON' || (curr.className && String(curr.className).includes('Card')) || curr.classList.contains('cursor-pointer')) {
-                                    return curr;
-                                }
-                                curr = curr.parentElement;
-                            }
-                            return el;
-                        }
-                    """)
-                    if tile_box:
-                        t_elem = tile_box.as_element()
-                        if t_elem and await t_elem.is_visible():
-                            t_text = (await t_elem.inner_text() or "").strip()
-                            first_line = t_text.splitlines()[0] if t_text else "Tile"
-                            if first_line not in self.processed_titles:
-                                self.processed_titles.add(first_line)
-                                log_info(f"👉 Mở bảng hoạt động: '{first_line}'")
-                                await t_elem.click()
-                                await self.handle_drawer_actions()
-                except Exception:
-                    pass
+            bing_app_tiles = await self.page.query_selector_all("div:has-text('Mobile App'), div:has-text('Bing App Streak')")
+            for tile in bing_app_tiles:
+                text = (await tile.inner_text() or "").strip()
+                if ("Mobile App" in text or "Bing App Streak" in text) and "Check-in" in text:
+                    if "Bing App Streak Checkin" not in self.processed_titles:
+                        self.processed_titles.add("Bing App Streak Checkin")
+                        await tile.click()
+                        await self.handle_drawer_actions()
+                        break
         except Exception:
             pass
 
-        # 3. All Earn / Quiz / Activity Cards (+500, +50, +30, +25, +15, +10, +5)
+        # 3. Detect and solve all uncompleted cards on page
         try:
-            # Tìm thẻ qua text điểm HOẶC qua class cấu trúc thẻ của Microsoft
-            card_badges = await self.page.query_selector_all(
-                "text='+500', text='+50', text='+30', text='+25', text='+15', text='+10', text='+5', "
-                "text='500', text='50', text='30', text='25', text='15', text='10', text='5', "
-                ".mee-rewards-daily-set-item-content, .mee-rewards-more-activities-card-item, "
-                "mee-card, [class*='promo-card'], [class*='activity-card'], "
-                "[data-bi-id*='Card'], [data-bi-id*='Activity']"
-            )
-            
-            # Lọc bỏ trùng lặp nếu query tìm ra nhiều element nằm lồng nhau
-            unique_cards = []
-            seen_elements = set()
-            for badge in card_badges:
-                try:
-                    card = await badge.evaluate_handle(r"""
-                        (el) => {
-                            let curr = el;
-                            while (curr && curr !== document.body) {
-                                if (curr.tagName === 'A' || curr.tagName === 'BUTTON' || curr.getAttribute('role') === 'button' || curr.classList.contains('cursor-pointer') || (curr.className && String(curr.className).includes('Card'))) {
-                                    return curr;
-                                }
-                                curr = curr.parentElement;
-                            }
-                            return el;
-                        }
-                    """)
-                    if not card:
-                        continue
-                    card_elem = card.as_element()
-                    if not card_elem or not await card_elem.is_visible():
-                        continue
+            # Tag all uncompleted cards directly in DOM
+            card_count = await self.page.evaluate(r"""
+                () => {
+                    document.querySelectorAll('[data-reward-task]').forEach(el => el.removeAttribute('data-reward-task'));
+                    
+                    const candidates = Array.from(document.querySelectorAll(
+                        "div[class*='card'], div[class*='Card'], mee-card, .mee-rewards-daily-set-item-content, " +
+                        ".mee-rewards-more-activities-card-item, a[class*='card'], [data-bi-id*='Card'], [data-bi-id*='Activity']"
+                    ));
+                    
+                    let found = 0;
+                    for (const el of candidates) {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width < 50 || rect.height < 30) continue;
                         
-                    # Lấy class hoặc id hoặc html để định danh
-                    el_html = await card_elem.evaluate("(el) => el.outerHTML")
-                    if el_html not in seen_elements:
-                        seen_elements.add(el_html)
-                        unique_cards.append(card_elem)
-                except Exception:
-                    pass
+                        const text = (el.innerText || '').trim();
+                        if (!text) continue;
+                        
+                        // Ignore completed or locked cards
+                        if (text.includes('Completed') || text.includes('✓') || text.toLowerCase().includes('rewards app only')) continue;
+                        
+                        // Must have point value
+                        if (!/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(text)) continue;
+                        
+                        // Avoid multi-card parent wrappers
+                        let isParentWrapper = false;
+                        for (let i = 0; i < el.children.length; i++) {
+                            const cText = (el.children[i].innerText || '').trim();
+                            if (/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(cText) && cText.length > 5 && cText !== text) {
+                                isParentWrapper = true;
+                                break;
+                            }
+                        }
+                        if (isParentWrapper) continue;
+                        
+                        el.setAttribute('data-reward-task', 'pending');
+                        found++;
+                    }
+                    return found;
+                }
+            """)
 
-            log_info(f"🔍 Quét thấy {len(unique_cards)} mục điểm hoạt động trên trang...")
+            cards = await self.page.query_selector_all("[data-reward-task='pending']")
+            log_info(f"🔍 Quét thấy {len(cards)} mục điểm hoạt động trên trang...")
 
-            for card_elem in unique_cards:
+            for card_elem in cards:
                 try:
                     raw_text = (await card_elem.inner_text() or "").strip()
                     title = raw_text.split("\n")[0].strip()
-                    if not title or title in self.processed_titles or "✓" in raw_text or "completed" in raw_text.lower():
+                    if not title or title in self.processed_titles or "Completed" in raw_text or "✓" in raw_text:
                         continue
                     self.processed_titles.add(title)
 
                     log_info(f"-> 🎯 Đang thực hiện nhiệm vụ: '[bold green]{title}[/bold green]'...")
                     await self._process_card(card_elem)
-                    await random_delay(5.0, 10.0)
+                    await random_delay(4.0, 7.5)
 
                 except Exception as e:
                     log_warn(f"Lỗi khi xử lý thẻ nhiệm vụ: {e}")
@@ -336,25 +286,16 @@ class RewardsDashboard:
         initial_pages = len(self.context.pages)
 
         # Click the action link or card
-        click_target = await card_element.query_selector("a, button, [role='button']")
-        target = click_target or card_element
+        click_target = await card_element.query_selector("a, button, [role='button']") or card_element
 
         try:
-            await target.click()
+            await click_target.click()
         except Exception:
-            await self.page.evaluate("(el) => el.click()", target)
+            await self.page.evaluate("(el) => el.click()", click_target)
 
-        await asyncio.sleep(3)
+        await asyncio.sleep(3.5)
 
-        # Check if a drawer was opened instead of a new tab
-        drawer_actions = await self.page.query_selector(
-            "button:has-text('Check-in now'), button:has-text('Activate streak'), button:has-text('Claim points'), button:has-text('Search now')"
-        )
-        if drawer_actions and await drawer_actions.is_visible():
-            await self.handle_drawer_actions()
-            return
-
-        # Check if a new tab opened
+        # 1. Check if a new tab opened (typical for Daily Set quizzes, polls, and bing searches)
         pages = self.context.pages
         if len(pages) > initial_pages:
             new_page = pages[-1]
@@ -367,8 +308,17 @@ class RewardsDashboard:
                 except Exception:
                     pass
                 await self.page.bring_to_front()
-        else:
-            await self._handle_activity_page(self.page)
+                await asyncio.sleep(1.5)
+            return
+
+        # 2. Check if a drawer was opened instead of a new tab
+        drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
+        if drawer and await drawer.is_visible():
+            await self.handle_drawer_actions()
+            return
+
+        # 3. Handle activity on current page if redirected
+        await self._handle_activity_page(self.page)
 
     async def _handle_activity_page(self, page: Page):
         """Smart quiz solver: handles Polls, Warpspeed, Supersonic, Turbocharge, A/B/C and Puzzles."""

@@ -22,15 +22,17 @@ class BingSearcher:
             await self.page.goto("https://www.bing.com/", wait_until="domcontentloaded", timeout=30000)
             await asyncio.sleep(2)
 
-            sign_in_el = await self.page.query_selector("#id_s, a:has-text('Sign in'), a:has-text('Đăng nhập')")
+            sign_in_el = await self.page.query_selector("a#id_s, a:has-text('Sign in'), a:has-text('Đăng nhập'), #id_l")
             if sign_in_el and await sign_in_el.is_visible():
-                log_info("Đang đồng bộ đăng nhập tài khoản Microsoft trên Bing Search...")
-                await self.page.goto(
-                    "https://www.bing.com/fd/auth/signin?action=interactive&provider=windows_live_id&return_url=https%3A%2F%2Fwww.bing.com%2F",
-                    wait_until="domcontentloaded",
-                    timeout=30000
-                )
-                await asyncio.sleep(3)
+                text = (await sign_in_el.text_content() or "").strip().lower()
+                if any(k in text for k in ["sign in", "đăng nhập", "login"]):
+                    log_info("Đang đồng bộ đăng nhập tài khoản Microsoft trên Bing Search...")
+                    await self.page.goto(
+                        "https://www.bing.com/fd/auth/signin?action=interactive&provider=windows_live_id&return_url=https%3A%2F%2Fwww.bing.com%2F",
+                        wait_until="domcontentloaded",
+                        timeout=30000
+                    )
+                    await asyncio.sleep(3)
         except Exception as e:
             log_warn(f"Lỗi khi đồng bộ đăng nhập Bing: {e}")
 
