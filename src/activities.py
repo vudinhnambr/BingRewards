@@ -75,12 +75,28 @@ class RewardsDashboard:
                             break
 
             # Streak & Level
-            streak_el = await self.page.query_selector(".streak-count, [aria-label*='streak'], mee-rewards-streak-status")
-            if streak_el:
-                streak_text = (await streak_el.text_content() or "").strip()
-                m_streak = re.search(r"\d+", streak_text)
-                if m_streak:
-                    summary["streak"] = m_streak.group(0)
+            streak_data = await self.page.evaluate(r"""
+                () => {
+                    const all = Array.from(document.querySelectorAll('*'));
+                    for (let i = 0; i < all.length; i++) {
+                        const text = (all[i].innerText || all[i].textContent || '').trim();
+                        if (text.toLowerCase().includes('day streak') || text.toLowerCase().includes('chuỗi') || text.toLowerCase().includes('ngày liên tiếp')) {
+                            const nums = text.match(/\d+/g);
+                            if (nums) return nums[0];
+                        }
+                    }
+                    return null;
+                }
+            """)
+            if streak_data:
+                summary["streak"] = streak_data
+            else:
+                streak_el = await self.page.query_selector(".streak-count, [aria-label*='streak'], mee-rewards-streak-status, [class*='streak']")
+                if streak_el:
+                    streak_text = (await streak_el.text_content() or "").strip()
+                    m_streak = re.search(r"\d+", streak_text)
+                    if m_streak:
+                        summary["streak"] = m_streak.group(0)
 
         except Exception:
             pass
