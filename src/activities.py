@@ -146,7 +146,9 @@ class RewardsDashboard:
 
         # 2. Activity Cards inside Side Drawer
         drawer_cards = await self.page.query_selector_all(
-            "text='+10', text='+15', text='+5', text='+30', text='+50'"
+            "text='+10', text='+15', text='+5', text='+30', text='+50', "
+            ".mee-rewards-daily-set-item-content, .mee-rewards-more-activities-card-item, "
+            "mee-card, [class*='promo-card'], [class*='activity-card']"
         )
         for badge in drawer_cards:
             try:
