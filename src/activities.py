@@ -187,70 +187,98 @@ class RewardsDashboard:
         except Exception:
             pass
 
-        # 3. Detect and solve all uncompleted cards on page
-        try:
-            # Tag all uncompleted cards directly in DOM
-            card_count = await self.page.evaluate(r"""
-                () => {
-                    document.querySelectorAll('[data-reward-task]').forEach(el => el.removeAttribute('data-reward-task'));
-                    
-                    const candidates = Array.from(document.querySelectorAll(
-                        "div[class*='card'], div[class*='Card'], mee-card, .mee-rewards-daily-set-item-content, " +
-                        ".mee-rewards-more-activities-card-item, a[class*='card'], [data-bi-id*='Card'], [data-bi-id*='Activity']"
-                    ));
-                    
-                    let found = 0;
-                    for (const el of candidates) {
-                        const rect = el.getBoundingClientRect();
-                        if (rect.width < 50 || rect.height < 30) continue;
-                        
-                        const text = (el.innerText || '').trim();
-                        if (!text) continue;
-                        
-                        // Ignore completed or locked cards
-                        if (text.includes('Completed') || text.includes('✓') || text.toLowerCase().includes('rewards app only')) continue;
-                        
-                        // Must have point value
-                        if (!/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(text)) continue;
-                        
-                        // Avoid multi-card parent wrappers
-                        let isParentWrapper = false;
-                        for (let i = 0; i < el.children.length; i++) {
-                            const cText = (el.children[i].innerText || '').trim();
-                            if (/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(cText) && cText.length > 5 && cText !== text) {
-                                isParentWrapper = true;
-                                break;
+
+        # 3. Detect and solve all uncompleted cards on page dynamically
+        base_url = self.page.url
+        for _ in range(35):
+            try:
+                # Ensure accordions are open
+                await self.page.evaluate(r"""
+                    () => {
+                        const accordions = Array.from(document.querySelectorAll("div[class*='cursor-pointer'], button, [role='button']"));
+                        for (const acc of accordions) {
+                            const text = (acc.innerText || acc.textContent || '').trim();
+                            if (['Daily set', 'Keep earning', 'Explore on Bing', 'Your activity', 'Get started'].some(k => text.startsWith(k))) {
+                                if (acc.getAttribute('aria-expanded') === 'false') {
+                                    acc.click();
+                                }
                             }
                         }
-                        if (isParentWrapper) continue;
-                        
-                        el.setAttribute('data-reward-task', 'pending');
-                        found++;
                     }
-                    return found;
-                }
-            """)
+                """)
+            except Exception:
+                pass
 
-            cards = await self.page.query_selector_all("[data-reward-task='pending']")
-            log_info(f"🔍 Quét thấy {len(cards)} mục điểm hoạt động trên trang...")
+            try:
+                next_card_info = await self.page.evaluate(r"""
+                    () => {
+                        const candidates = Array.from(document.querySelectorAll(
+                            "div[class*='card'], div[class*='Card'], mee-card, .mee-rewards-daily-set-item-content, " +
+                            ".mee-rewards-more-activities-card-item, a[class*='card'], [data-bi-id*='Card'], [data-bi-id*='Activity']"
+                        ));
+                        
+                        for (let i = 0; i < candidates.length; i++) {
+                            const el = candidates[i];
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width < 50 || rect.height < 30) continue;
+                            
+                            const text = (el.innerText || '').trim();
+                            if (!text) continue;
+                            if (text.includes('Completed') || text.includes('✓') || text.toLowerCase().includes('rewards app only')) continue;
+                            if (!/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(text)) continue;
+                            
+                            // Avoid multi-card parent wrapper
+                            let isParent = false;
+                            for (let j = 0; j < el.children.length; j++) {
+                                const cText = (el.children[j].innerText || '').trim();
+                                if (/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(cText) && cText.length > 5 && cText !== text) {
+                                    isParent = true;
+                                    break;
+                                }
+                            }
+                            if (isParent) continue;
+                            
+                            if (el.getAttribute('data-reward-done') === 'true') continue;
+                            
+                            el.setAttribute('data-reward-next', 'true');
+                            return { title: text.split('\n')[0].trim(), found: true };
+                        }
+                        return { found: false };
+                    }
+                """)
 
-            for card_elem in cards:
-                try:
-                    raw_text = (await card_elem.inner_text() or "").strip()
-                    title = raw_text.split("\n")[0].strip()
-                    if not title or title in self.processed_titles or "Completed" in raw_text or "✓" in raw_text:
-                        continue
-                    self.processed_titles.add(title)
+                if not next_card_info.get("found"):
+                    break
 
-                    log_info(f"-> 🎯 Đang thực hiện nhiệm vụ: '[bold green]{title}[/bold green]'...")
-                    await self._process_card(card_elem)
-                    await random_delay(4.0, 7.5)
+                title = next_card_info.get("title", "")
+                if not title or title in self.processed_titles:
+                    await self.page.evaluate("() => { const el = document.querySelector('[data-reward-next]'); if (el) { el.removeAttribute('data-reward-next'); el.setAttribute('data-reward-done', 'true'); } }")
+                    continue
 
-                except Exception as e:
-                    log_warn(f"Lỗi khi xử lý thẻ nhiệm vụ: {e}")
+                card_elem = await self.page.query_selector("[data-reward-next='true']")
+                if not card_elem:
+                    break
 
-        except Exception as e:
-            log_warn(f"Lỗi quét hoạt động: {e}")
+                self.processed_titles.add(title)
+                log_info(f"-> 🎯 Đang thực hiện nhiệm vụ: '[bold green]{title}[/bold green]'...")
+
+                # Mark as processed in DOM so next query won't loop
+                await self.page.evaluate("(el) => { el.removeAttribute('data-reward-next'); el.setAttribute('data-reward-done', 'true'); }", card_elem)
+
+                await self._process_card(card_elem)
+                await random_delay(4.0, 7.5)
+
+                # If page navigated away, go back to base_url to keep processing remaining cards
+                if self.page.url != base_url:
+                    await self.open_dashboard(base_url)
+                    await asyncio.sleep(2)
+
+            except Exception as e:
+                log_warn(f"Lỗi khi xử lý thẻ nhiệm vụ: {e}")
+                # Ensure we return to base url if broken
+                if self.page.url != base_url:
+                    await self.open_dashboard(base_url)
+                    await asyncio.sleep(2)
 
     async def solve_all_activities(self):
         """Complete all tasks across Dashboard, Earn page (/earn), and Get Started onboarding."""
@@ -284,6 +312,7 @@ class RewardsDashboard:
     async def _process_card(self, card_element):
         """Click on card, handle new tab, quiz, poll, or side drawer."""
         initial_pages = len(self.context.pages)
+        start_url = self.page.url
 
         # Click the action link or card
         click_target = await card_element.query_selector("a, button, [role='button']") or card_element
@@ -311,13 +340,21 @@ class RewardsDashboard:
                 await asyncio.sleep(1.5)
             return
 
-        # 2. Check if a drawer was opened instead of a new tab
+        # 2. Check if current page navigated away in same tab
+        if self.page.url != start_url:
+            try:
+                await self._handle_activity_page(self.page)
+            except Exception:
+                pass
+            return
+
+        # 3. Check if a drawer was opened instead of a new tab
         drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
         if drawer and await drawer.is_visible():
             await self.handle_drawer_actions()
             return
 
-        # 3. Handle activity on current page if redirected
+        # 4. Handle activity on current page
         await self._handle_activity_page(self.page)
 
     async def _handle_activity_page(self, page: Page):
