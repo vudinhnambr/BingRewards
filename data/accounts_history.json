@@ -718,5 +718,15 @@
     "status": "Thành công",
     "timestamp": "06/09/2026 21:58:58",
     "date": "06/09/2026"
+  },
+  {
+    "account": "csb.qaqc@gmail.com",
+    "start_points": "190",
+    "end_points": "295",
+    "gained": 105,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 22:26:05",
+    "date": "06/09/2026"
   }
 ]
