@@ -38,14 +38,19 @@ class MSNNewsReader:
                     await self.page.goto(url, wait_until="domcontentloaded", timeout=25000)
                     
                     # Simulate human reading: scroll down slowly
-                    for _ in range(3):
+                    for _ in range(4):
                         scroll = random.randint(400, 800)
                         await self.page.evaluate(f"window.scrollBy(0, {scroll})")
-                        await asyncio.sleep(random.uniform(1.2, 2.5))
+                        await asyncio.sleep(random.uniform(2.5, 5.5))
+                        
+                        # Occasionally scroll up a bit
+                        if random.choice([True, False]):
+                            await self.page.evaluate(f"window.scrollBy(0, -{random.randint(100, 300)})")
+                            await asyncio.sleep(random.uniform(1.0, 2.5))
 
                     read_count += 1
                     log_info(f"[{i}/{count}] Đã đọc bài báo #{i}...")
-                    await random_delay(3.0, 5.0)
+                    await random_delay(5.0, 10.0)
 
                 except Exception as e:
                     log_warn(f"Lỗi khi đọc bài báo #{i}: {e}")

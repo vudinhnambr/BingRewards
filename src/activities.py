@@ -156,7 +156,7 @@ class RewardsDashboard:
                         if first_line and not any(w in first_line for w in ["Daily set", "Your progress"]):
                             log_info(f"-> Đang thực hiện nhiệm vụ trong ngăn kéo: '{first_line}'...")
                             await self._process_card(card_elem)
-                            await random_delay(2.5, 4.5)
+                            await random_delay(4.5, 8.5)
             except Exception:
                 pass
 
@@ -253,7 +253,7 @@ class RewardsDashboard:
 
                     log_info(f"-> 🎯 Đang thực hiện nhiệm vụ: '[bold green]{title}[/bold green]'...")
                     await self._process_card(card_elem)
-                    await random_delay(3.0, 5.0)
+                    await random_delay(5.0, 10.0)
 
                 except Exception as e:
                     log_warn(f"Lỗi khi xử lý thẻ nhiệm vụ: {e}")
@@ -340,7 +340,7 @@ class RewardsDashboard:
             chosen = random.choice(poll_options)
             try:
                 await chosen.click()
-                await asyncio.sleep(3.5)
+                await random_delay(4.0, 7.0)
             except Exception:
                 pass
             return
@@ -354,9 +354,9 @@ class RewardsDashboard:
             start_btn = await page.query_selector("#rqStartQuiz, button:has-text('Start playing'), button:has-text('Start quiz')")
             if start_btn and await start_btn.is_visible():
                 await start_btn.click()
-                await asyncio.sleep(2)
+                await random_delay(3.0, 5.0)
 
-            for step in range(20):
+            for step in range(30):
                 options = await page.query_selector_all(
                     "[id^='rqAnswerOption'], .wk_OptionClickClass, .rqOption, input[type='radio'], "
                     "[class*='b_cards'] [role='button'], [class*='quizOption'], div[class*='bt_option']"
@@ -369,7 +369,7 @@ class RewardsDashboard:
                     try:
                         if await opt.is_visible():
                             await opt.click()
-                            await asyncio.sleep(1.0)
+                            await random_delay(2.0, 4.0)
                     except Exception:
                         pass
 
@@ -377,13 +377,13 @@ class RewardsDashboard:
                 next_btn = await page.query_selector("#rqNextQuestion, input[value='Next Question'], button:has-text('Next')")
                 if next_btn and await next_btn.is_visible():
                     await next_btn.click()
-                    await asyncio.sleep(1.5)
+                    await random_delay(2.0, 4.0)
 
                 complete_el = await page.query_selector(".rqComplete, #quizCompleteMessage, [class*='quizComplete']")
                 if complete_el and await complete_el.is_visible():
                     log_success("🎉 Đã hoàn thành toàn bộ Quiz thành công!")
                     break
-                await asyncio.sleep(1.5)
+                await random_delay(1.5, 3.0)
             return
 
         # 3. Puzzle & Exploration Tasks

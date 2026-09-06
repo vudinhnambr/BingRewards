@@ -77,9 +77,9 @@ class BingSearcher:
                     if search_input and await search_input.is_visible():
                         await search_input.click()
                         await search_input.fill("")
-                        # Type with realistic delay
-                        await search_input.type(query, delay=random.randint(30, 80))
-                        await asyncio.sleep(random.uniform(0.3, 0.7))
+                        # Type with realistic slow delay
+                        await search_input.type(query, delay=random.randint(80, 200))
+                        await asyncio.sleep(random.uniform(1.2, 3.0))
                         await self.page.keyboard.press("Enter")
                         try:
                             await self.page.wait_for_load_state("domcontentloaded", timeout=20000)
@@ -89,10 +89,14 @@ class BingSearcher:
                         search_url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
                         await self.page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
 
-                    # Simulate human scrolling
+                    # Simulate human scrolling down and slightly up
                     scroll_distance = random.randint(300, 700)
                     await self.page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                    await asyncio.sleep(random.uniform(1.0, 2.0))
+                    await asyncio.sleep(random.uniform(1.5, 3.0))
+                    
+                    if random.choice([True, False]):
+                        await self.page.evaluate(f"window.scrollBy(0, -{random.randint(100, 300)})")
+                        await asyncio.sleep(random.uniform(1.0, 2.0))
 
                     points = await self.get_current_points()
                     log_info(f"[{i}/{len(words)}] Tìm kiếm: '{query}' | Điểm hiện tại: [bold green]{points}[/bold green]")
@@ -103,7 +107,7 @@ class BingSearcher:
                         log_info(f"Nghỉ giãn cách batch sau {self.config.search_cooldown_batch_size} lượt: {cooldown:.1f}s...")
                         await asyncio.sleep(cooldown)
                     else:
-                        await random_delay(self.config.min_delay_sec, self.config.max_delay_sec)
+                        await random_delay(self.config.min_delay_sec + 3.0, self.config.max_delay_sec + 8.0)
 
                 except Exception as e:
                     log_warn(f"Lỗi ở lượt tìm kiếm #{i} ('{query}'): {e}")
