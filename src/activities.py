@@ -245,8 +245,10 @@ class RewardsDashboard:
             # Tìm thẻ qua text điểm HOẶC qua class cấu trúc thẻ của Microsoft
             card_badges = await self.page.query_selector_all(
                 "text='+500', text='+50', text='+30', text='+25', text='+15', text='+10', text='+5', "
+                "text='500', text='50', text='30', text='25', text='15', text='10', text='5', "
                 ".mee-rewards-daily-set-item-content, .mee-rewards-more-activities-card-item, "
-                "mee-card, [class*='promo-card'], [class*='activity-card']"
+                "mee-card, [class*='promo-card'], [class*='activity-card'], "
+                "[data-bi-id*='Card'], [data-bi-id*='Activity']"
             )
             
             # Lọc bỏ trùng lặp nếu query tìm ra nhiều element nằm lồng nhau
