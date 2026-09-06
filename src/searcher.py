@@ -71,14 +71,28 @@ class BingSearcher:
 
             for i, query in enumerate(words, start=1):
                 try:
-                    # Navigate to Bing search
-                    search_url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
-                    await self.page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
+                    # Check if search input is directly interactable on current page
+                    search_input = await self.page.query_selector("#sb_form_q, input[name='q'], input[type='search']")
+                    
+                    if search_input and await search_input.is_visible():
+                        await search_input.click()
+                        await search_input.fill("")
+                        # Type with realistic delay
+                        await search_input.type(query, delay=random.randint(30, 80))
+                        await asyncio.sleep(random.uniform(0.3, 0.7))
+                        await self.page.keyboard.press("Enter")
+                        try:
+                            await self.page.wait_for_load_state("domcontentloaded", timeout=20000)
+                        except Exception:
+                            pass
+                    else:
+                        search_url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
+                        await self.page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
 
                     # Simulate human scrolling
                     scroll_distance = random.randint(300, 700)
                     await self.page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                    await asyncio.sleep(random.uniform(0.5, 1.5))
+                    await asyncio.sleep(random.uniform(1.0, 2.0))
 
                     points = await self.get_current_points()
                     log_info(f"[{i}/{len(words)}] Tìm kiếm: '{query}' | Điểm hiện tại: [bold green]{points}[/bold green]")

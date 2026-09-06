@@ -518,5 +518,75 @@
     "status": "Lỗi đăng nhập",
     "timestamp": "05/09/2026 23:59:10",
     "date": "05/09/2026"
+  },
+  {
+    "account": "vudinhnambr@gmail.com",
+    "start_points": "495",
+    "end_points": "498",
+    "gained": 3,
+    "streak": "4",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambrvt@gmail.com",
+    "start_points": "216",
+    "end_points": "216",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambr1@gmail.com",
+    "start_points": "190",
+    "end_points": "190",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambr2@gmail.com",
+    "start_points": "190",
+    "end_points": "190",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambr3@gmail.com",
+    "start_points": "190",
+    "end_points": "190",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "csb.qaqc@gmail.com",
+    "start_points": "190",
+    "end_points": "190",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambr4@gmail.com",
+    "start_points": "N/A",
+    "end_points": "N/A",
+    "gained": 0,
+    "streak": "0",
+    "status": "Lỗi đăng nhập",
+    "timestamp": "06/09/2026 11:38:14",
+    "date": "06/09/2026"
   }
 ]
