@@ -1,34 +1,36 @@
 import asyncio
 import re
 import random
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Set
 from playwright.async_api import Page, BrowserContext
 from src.config import BotConfig
 from src.utils import log_info, log_success, log_warn, random_delay
 
 class RewardsDashboard:
-    """Solves Daily Set, Side Drawers, Streaks, Quizzes, Polls and More Activities on Microsoft Rewards 2026 & Classic UI."""
+    """Intelligent, thorough automation engine for all Microsoft Rewards tasks (2026 UI & Classic)."""
 
-    def __init__(self, page: Page, context: BrowserContext, config: BotConfig):
+    def __init__(self, page: Page, context: BrowserContext, config: BotConfig, is_mobile: bool = False):
         self.page = page
         self.context = context
         self.config = config
+        self.is_mobile = is_mobile
+        self.processed_titles: Set[str] = set()
 
-    async def open_dashboard(self) -> bool:
-        """Navigate to rewards dashboard and check authentication."""
-        log_info("Đang truy cập https://rewards.bing.com/dashboard ...")
+    async def open_dashboard(self, url: str = "https://rewards.bing.com/dashboard") -> bool:
+        """Navigate to rewards page and check authentication."""
+        log_info(f"Đang truy cập {url} ({'Mobile' if self.is_mobile else 'Desktop'})...")
         try:
-            await self.page.goto("https://rewards.bing.com/dashboard", wait_until="domcontentloaded", timeout=45000)
+            await self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
             await asyncio.sleep(4)
 
             # Check if redirected to welcome or login page
-            if "login.live.com" in self.page.url or "welcome" in self.page.url.lower():
-                log_warn("Trình duyệt đang ở trang Welcome/Đăng nhập (Chưa đăng nhập tài khoản Microsoft)!")
+            if "login.live.com" in self.page.url:
+                log_warn("Trình duyệt đang ở trang Đăng nhập (Chưa có phiên đăng nhập Microsoft)!")
                 return False
 
             return True
         except Exception as e:
-            log_warn(f"Không thể tải trang dashboard: {e}")
+            log_warn(f"Không thể tải trang {url}: {e}")
             return False
 
     async def get_account_summary(self) -> Dict[str, Any]:
@@ -95,20 +97,20 @@ class RewardsDashboard:
                 if await btn.is_visible():
                     try:
                         await btn.click()
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(0.8)
                     except Exception:
                         pass
-            # Fallback Escape key
+            # Escape key fallback
             await self.page.keyboard.press("Escape")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.4)
         except Exception:
             pass
 
     async def handle_drawer_actions(self):
-        """Perform action buttons inside an opened side drawer (Check-in, Activate, Claim, Solve items)."""
+        """Perform actions inside opened side drawer (Check-in, Activate, Claim, Solve nested cards)."""
         await asyncio.sleep(1.5)
 
-        # 1. Action Buttons in Drawers (Check-in now, Activate streak, Claim points, Search now)
+        # 1. Action Buttons in Drawers
         action_selectors = [
             ("Check-in now", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Điểm danh')"),
             ("Activate streak", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kích hoạt')"),
@@ -119,14 +121,14 @@ class RewardsDashboard:
         for action_name, sel in action_selectors:
             btn = await self.page.query_selector(sel)
             if btn and await btn.is_visible():
-                log_info(f"✨ Bấm nút trong ngăn kéo (Side Drawer): '[bold cyan]{action_name}[/bold cyan]'")
+                log_info(f"✨ Bấm nút trong Side Drawer: '[bold cyan]{action_name}[/bold cyan]'")
                 try:
                     await btn.click()
                     await asyncio.sleep(3)
                 except Exception:
                     pass
 
-        # 2. Daily Set / Activity Items inside the Side Drawer
+        # 2. Activity Cards inside Side Drawer
         drawer_cards = await self.page.query_selector_all(
             "div:has-text('+10'), div:has-text('+15'), div:has-text('+5'), div:has-text('+30'), div:has-text('+50')"
         )
@@ -148,7 +150,6 @@ class RewardsDashboard:
                     card_elem = card.as_element()
                     if card_elem and await card_elem.is_visible():
                         text = (await card_elem.inner_text() or "").strip()
-                        # Skip if completed
                         if "✓" in text or "completed" in text.lower():
                             continue
                         first_line = text.split("\n")[0].strip()
@@ -159,37 +160,35 @@ class RewardsDashboard:
             except Exception:
                 pass
 
-        # Close the drawer after processing
         await self.close_any_drawer()
 
-    async def solve_all_activities(self):
-        """Find and solve all uncompleted cards across modern 2026 and classic dashboard."""
-        log_info("Đang quét các thẻ nhiệm vụ và hoạt động kiếm điểm...")
-
-        # 1. Expand all accordion sections (Your progress, Daily set, Your activity, Achievements)
+    async def scan_and_solve_page_cards(self):
+        """Intelligently find and solve all uncompleted activity cards on current page."""
+        # 1. Expand all accordions if collapsed
         try:
             accordions = await self.page.query_selector_all(
                 "div[class*='cursor-pointer'], button[class*='w-full'], [role='button']"
             )
             for acc in accordions:
                 text = (await acc.text_content() or "").strip()
-                if any(k in text for k in ["Daily set", "Your activity", "Your progress", "Achievements", "Get started"]):
+                if any(k in text for k in ["Daily set", "Your activity", "Your progress", "Achievements", "Explore on Bing", "Keep earning", "Streaks"]):
                     has_check = await acc.query_selector("svg[class*='check'], [class*='check'], span[class*='check']")
                     if not has_check:
                         try:
                             await acc.click()
-                            await asyncio.sleep(1)
+                            await asyncio.sleep(0.8)
                         except Exception:
                             pass
         except Exception:
             pass
 
-        # 2. Process 'Your activity' interactive tiles (Bing, Daily Set, Edge, Mobile App, Visual Search)
+        # 2. Interactive Tiles under Streaks / Your Activity (Bing, Daily Set, Edge, Mobile App, Visual Search)
         try:
-            activity_tiles = await self.page.query_selector_all(
-                "div:has-text('Bing'), div:has-text('Daily Set'), div:has-text('Edge'), div:has-text('Mobile App'), div:has-text('Visual Search')"
+            tiles = await self.page.query_selector_all(
+                "div:has-text('Bing Search Streak'), div:has-text('Daily Set Streak'), div:has-text('Edge Browsing Streak'), "
+                "div:has-text('Bing App Streak'), div:has-text('Mobile App'), div:has-text('Visual Search'), div:has-text('Edge')"
             )
-            for tile in activity_tiles:
+            for tile in tiles:
                 try:
                     tile_box = await tile.evaluate_handle(r"""
                         (el) => {
@@ -204,57 +203,29 @@ class RewardsDashboard:
                         }
                     """)
                     if tile_box:
-                        tile_elem = tile_box.as_element()
-                        if tile_elem and await tile_elem.is_visible():
-                            tile_text = (await tile_elem.inner_text() or "").strip()
-                            if "How to activate" in tile_text or "Check-in" in tile_text or "Activity" in tile_text or "Search" in tile_text:
-                                log_info(f"👉 Mở bảng hoạt động: '{tile_text.splitlines()[0]}'")
-                                await tile_elem.click()
+                        t_elem = tile_box.as_element()
+                        if t_elem and await t_elem.is_visible():
+                            t_text = (await t_elem.inner_text() or "").strip()
+                            first_line = t_text.splitlines()[0] if t_text else "Tile"
+                            if first_line not in self.processed_titles:
+                                self.processed_titles.add(first_line)
+                                log_info(f"👉 Mở bảng hoạt động: '{first_line}'")
+                                await t_elem.click()
                                 await self.handle_drawer_actions()
                 except Exception:
                     pass
         except Exception:
             pass
 
-        # 3. Process 'Get started with Rewards' Onboarding Cards (Search 1 time, Set goal, Browse Earn page...)
+        # 3. All Earn / Quiz / Activity Cards (+500, +50, +30, +25, +15, +10, +5)
         try:
-            onboarding_cards = await self.page.query_selector_all(
-                "div:has-text('Search 1 time'), div:has-text('Set a Rewards goal'), div:has-text('Browse the Earn page'), div:has-text('Earn 1320 points')"
+            card_badges = await self.page.query_selector_all(
+                "div:has-text('+500'), div:has-text('+50'), div:has-text('+30'), div:has-text('+25'), "
+                "div:has-text('+15'), div:has-text('+10'), div:has-text('+5')"
             )
-            for card in onboarding_cards:
-                try:
-                    c_box = await card.evaluate_handle(r"""
-                        (el) => {
-                            let curr = el;
-                            while (curr && curr !== document.body) {
-                                if (curr.tagName === 'A' || curr.tagName === 'BUTTON' || (curr.className && String(curr.className).includes('Card')) || curr.classList.contains('cursor-pointer')) {
-                                    return curr;
-                                }
-                                curr = curr.parentElement;
-                            }
-                            return el;
-                        }
-                    """)
-                    if c_box:
-                        c_elem = c_box.as_element()
-                        if c_elem and await c_elem.is_visible():
-                            c_text = (await c_elem.inner_text() or "").strip()
-                            if "✓" not in c_text and "completed" not in c_text.lower():
-                                log_info(f"🎯 Thực hiện nhiệm vụ khởi động: '{c_text.splitlines()[0]}'")
-                                await self._process_card(c_elem)
-                                await random_delay(2.5, 4.0)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+            log_info(f"🔍 Quét thấy {len(card_badges)} mục điểm hoạt động trên trang...")
 
-        # 4. Modern 2026 UI Badges (+10, +25, +5, +50, +15, +30)
-        try:
-            badges = await self.page.query_selector_all(
-                "div:has-text('+10'), div:has-text('+25'), div:has-text('+5'), div:has-text('+50'), div:has-text('+15'), div:has-text('+30')"
-            )
-            processed_titles = set()
-            for idx, badge in enumerate(badges, start=1):
+            for badge in card_badges:
                 try:
                     card = await badge.evaluate_handle(r"""
                         (el) => {
@@ -276,41 +247,43 @@ class RewardsDashboard:
 
                     raw_text = (await card_elem.inner_text() or "").strip()
                     title = raw_text.split("\n")[0].strip()
-                    if not title or title in processed_titles or "✓" in raw_text or "completed" in raw_text.lower():
+                    if not title or title in self.processed_titles or "✓" in raw_text or "completed" in raw_text.lower():
                         continue
-                    processed_titles.add(title)
+                    self.processed_titles.add(title)
 
-                    log_info(f"-> Đang thực hiện nhiệm vụ: '{title}'...")
+                    log_info(f"-> 🎯 Đang thực hiện nhiệm vụ: '[bold green]{title}[/bold green]'...")
                     await self._process_card(card_elem)
                     await random_delay(3.0, 5.0)
 
                 except Exception as e:
-                    log_warn(f"Lỗi khi xử lý thẻ #{idx}: {e}")
+                    log_warn(f"Lỗi khi xử lý thẻ nhiệm vụ: {e}")
 
         except Exception as e:
             log_warn(f"Lỗi quét hoạt động: {e}")
 
-        # 5. Classic Cards Fallback (#daily-sets, mee-card)
-        try:
-            classic_cards = await self.page.query_selector_all("#daily-sets .c-card, mee-card.c-card, #more-activities .c-card")
-            for idx, card in enumerate(classic_cards, start=1):
-                try:
-                    is_completed = await card.query_selector(".mee-icon-SkypeCircleCheck, .completed, [aria-label*='completed']")
-                    if is_completed:
-                        continue
-                    title_el = await card.query_selector("h3, .c-heading, .title")
-                    title = (await title_el.text_content() if title_el else f"Nhiệm vụ classic #{idx}").strip()
+    async def solve_all_activities(self):
+        """Complete all tasks across Dashboard, Earn page (/earn), and Get Started onboarding."""
+        # Phase 1: Main Dashboard (Daily Set + Streaks + Activities)
+        await self.open_dashboard("https://rewards.bing.com/dashboard")
+        await self.scan_and_solve_page_cards()
 
-                    log_info(f"-> Đang thực hiện nhiệm vụ Classic: '{title}'...")
-                    await self._process_card(card)
-                    await random_delay(3.0, 5.0)
-                except Exception:
-                    pass
+        # Phase 2: Earn Page (/earn - contains 710+ points in 'Keep earning' & 'Explore on Bing')
+        await self.open_dashboard("https://rewards.bing.com/earn")
+        await self.scan_and_solve_page_cards()
+
+        # Phase 3: Onboarding Checklist (/welcome/getstarted - +1,320 pts)
+        try:
+            get_started_link = await self.page.query_selector("a[href*='getstarted'], button:has-text('Earn 1320 points')")
+            if get_started_link and await get_started_link.is_visible():
+                log_info("🚀 Mở trang nhiệm vụ khởi động 'Get started with Rewards'...")
+                await get_started_link.click()
+                await asyncio.sleep(4)
+                await self.scan_and_solve_page_cards()
         except Exception:
             pass
 
     async def solve_daily_set(self):
-        """Unified runner for Daily Set and modern tasks."""
+        """Unified entry point to solve all tasks."""
         await self.solve_all_activities()
 
     async def solve_more_activities(self):
@@ -318,7 +291,7 @@ class RewardsDashboard:
         pass
 
     async def _process_card(self, card_element):
-        """Click on card, handle new tab or quiz/poll interaction."""
+        """Click on card, handle new tab, quiz, poll, or side drawer."""
         initial_pages = len(self.context.pages)
 
         # Click the action link or card
@@ -333,7 +306,9 @@ class RewardsDashboard:
         await asyncio.sleep(3)
 
         # Check if a drawer was opened instead of a new tab
-        drawer_actions = await self.page.query_selector("button:has-text('Check-in now'), button:has-text('Activate streak'), button:has-text('Claim points')")
+        drawer_actions = await self.page.query_selector(
+            "button:has-text('Check-in now'), button:has-text('Activate streak'), button:has-text('Claim points'), button:has-text('Search now')"
+        )
         if drawer_actions and await drawer_actions.is_visible():
             await self.handle_drawer_actions()
             return
@@ -343,7 +318,7 @@ class RewardsDashboard:
         if len(pages) > initial_pages:
             new_page = pages[-1]
             try:
-                await new_page.wait_for_load_state("domcontentloaded", timeout=20000)
+                await new_page.wait_for_load_state("domcontentloaded", timeout=25000)
                 await self._handle_activity_page(new_page)
             finally:
                 try:
@@ -355,46 +330,50 @@ class RewardsDashboard:
             await self._handle_activity_page(self.page)
 
     async def _handle_activity_page(self, page: Page):
-        """Handle quiz, poll, or standard click-and-wait task on page."""
+        """Smart quiz solver: handles Polls, Warpspeed, Supersonic, Turbocharge, A/B/C and Puzzles."""
         await asyncio.sleep(2)
 
-        # 1. Check for Poll (Bình chọn hàng ngày)
+        # 1. Daily Poll (Bình chọn)
         poll_options = await page.query_selector_all("#btoption0, #btoption1, .btOption, [id^='btoption'], div[class*='pollOption']")
         if poll_options:
-            log_info("Phát hiện Poll (Bình chọn), đang chọn đáp án ngẫu nhiên...")
+            log_info("📊 Phát hiện Poll (Bình chọn), đang tự động chọn đáp án...")
             chosen = random.choice(poll_options)
             try:
                 await chosen.click()
-                await asyncio.sleep(3)
+                await asyncio.sleep(3.5)
             except Exception:
                 pass
             return
 
-        # 2. Check for Quiz / Trivia / 'A, B, or C?'
-        start_quiz_btn = await page.query_selector("#rqStartQuiz, #rqAnswerOption0, .wk_OptionClickClass, [id^='rqAnswerOption'], [class*='quizOption']")
+        # 2. Quizzes (Warpspeed, Supersonic, Turbocharge, A B C, This or That)
+        start_quiz_btn = await page.query_selector(
+            "#rqStartQuiz, #rqAnswerOption0, .wk_OptionClickClass, [id^='rqAnswerOption'], [class*='quizOption'], input[value='Start playing']"
+        )
         if start_quiz_btn:
-            log_info("Phát hiện Quiz (Trắc nghiệm), đang tự động hoàn thành...")
+            log_info("🧠 Phát hiện Quiz (Bài kiểm tra trắc nghiệm), đang tự động giải bài...")
             start_btn = await page.query_selector("#rqStartQuiz, button:has-text('Start playing'), button:has-text('Start quiz')")
             if start_btn and await start_btn.is_visible():
                 await start_btn.click()
                 await asyncio.sleep(2)
 
-            for _ in range(15):
+            for step in range(20):
                 options = await page.query_selector_all(
-                    "[id^='rqAnswerOption'], .wk_OptionClickClass, .rqOption, input[type='radio'], [class*='b_cards'] [role='button'], [class*='quizOption']"
+                    "[id^='rqAnswerOption'], .wk_OptionClickClass, .rqOption, input[type='radio'], "
+                    "[class*='b_cards'] [role='button'], [class*='quizOption'], div[class*='bt_option']"
                 )
                 if not options:
                     break
 
+                # Click multiple visible options (essential for Supersonic Quiz where 3 correct options must be clicked)
                 for opt in options:
                     try:
                         if await opt.is_visible():
                             await opt.click()
-                            await asyncio.sleep(1.2)
+                            await asyncio.sleep(1.0)
                     except Exception:
                         pass
 
-                # Next question button if exists
+                # Next question button if present
                 next_btn = await page.query_selector("#rqNextQuestion, input[value='Next Question'], button:has-text('Next')")
                 if next_btn and await next_btn.is_visible():
                     await next_btn.click()
@@ -402,14 +381,27 @@ class RewardsDashboard:
 
                 complete_el = await page.query_selector(".rqComplete, #quizCompleteMessage, [class*='quizComplete']")
                 if complete_el and await complete_el.is_visible():
-                    log_success("Đã hoàn thành Quiz trắc nghiệm thành công!")
+                    log_success("🎉 Đã hoàn thành toàn bộ Quiz thành công!")
                     break
                 await asyncio.sleep(1.5)
             return
 
-        # 3. Simple click-through / explore page
+        # 3. Puzzle & Exploration Tasks
         try:
-            await page.evaluate("window.scrollBy(0, 350)")
+            puzzle_tiles = await page.query_selector_all("[class*='puzzle'], [class*='tile']")
+            for p_tile in puzzle_tiles[:4]:
+                if await p_tile.is_visible():
+                    try:
+                        await p_tile.click()
+                        await asyncio.sleep(0.8)
+                    except Exception:
+                        pass
         except Exception:
             pass
-        await asyncio.sleep(random.uniform(3.0, 5.0))
+
+        # 4. Standard Explore & Click-to-Earn (Scroll and hold session for tracking pixel)
+        try:
+            await page.evaluate("window.scrollBy(0, 450)")
+        except Exception:
+            pass
+        await asyncio.sleep(random.uniform(4.0, 6.0))

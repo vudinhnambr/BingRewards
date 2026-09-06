@@ -169,11 +169,16 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
 
         await bm.close()
 
-        # Phase 2: Mobile Context (Mobile Search & MSN News Read to Earn)
-        if (config.run_mobile_search and config.mobile_searches > 0) or config.run_msn_news:
-            log_step(f"GIAI ĐOẠN 2: MOBILE SEARCH & MSN NEWS {f'({account_label})' if account_label else ''}")
+        # Phase 2: Mobile Context (Mobile Check-in, Mobile Search & MSN News)
+        if config.run_mobile_search or config.run_msn_news or config.run_daily_set:
+            log_step(f"GIAI ĐOẠN 2: MOBILE TASKS & MOBILE SEARCH {f'({account_label})' if account_label else ''}")
             context_mob = await bm.get_context(is_mobile=True)
             page_mob = await context_mob.new_page()
+
+            # Mobile Dashboard Check-in and Drawers
+            dash_mob = RewardsDashboard(page_mob, context_mob, config, is_mobile=True)
+            if await dash_mob.open_dashboard("https://rewards.bing.com/earn"):
+                await dash_mob.handle_drawer_actions()
 
             # Mobile Search
             if config.run_mobile_search and config.mobile_searches > 0:
