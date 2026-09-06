@@ -588,5 +588,35 @@
     "status": "Lỗi đăng nhập",
     "timestamp": "06/09/2026 11:38:14",
     "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambr@gmail.com",
+    "start_points": "678",
+    "end_points": "750",
+    "gained": 72,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 14:24:38",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambrvt@gmail.com",
+    "start_points": "691",
+    "end_points": "786",
+    "gained": 95,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 14:52:12",
+    "date": "06/09/2026"
+  },
+  {
+    "account": "vudinhnambr1@gmail.com",
+    "start_points": "190",
+    "end_points": "190",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "06/09/2026 15:17:30",
+    "date": "06/09/2026"
   }
 ]
