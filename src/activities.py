@@ -526,18 +526,19 @@ class RewardsDashboard:
                 await random_delay(1.5, 2.5)
             return
 
-        # 3. Puzzle & Exploration Tasks
+        # 3. Puzzle & Exploration Tasks (only on rewards activity pages, not bing.com)
         try:
-            puzzle_tiles = await page.query_selector_all("[class*='puzzle'], [class*='tile']")
-            if puzzle_tiles:
-                log_info(f"Phat hien Puzzle ({len(puzzle_tiles)} tiles), dang click...")
-            for p_tile in puzzle_tiles[:4]:
-                if await p_tile.is_visible():
-                    try:
-                        await p_tile.click()
-                        await asyncio.sleep(0.8)
-                    except Exception:
-                        pass
+            if "rewards.bing.com" in (page.url or ""):
+                puzzle_tiles = await page.query_selector_all("[class*='puzzle'], [class*='tile']")
+                if puzzle_tiles:
+                    log_info(f"Phat hien Puzzle ({len(puzzle_tiles)} tiles), dang click...")
+                for p_tile in puzzle_tiles[:4]:
+                    if await p_tile.is_visible():
+                        try:
+                            await p_tile.click()
+                            await asyncio.sleep(0.8)
+                        except Exception:
+                            pass
         except Exception:
             pass
 

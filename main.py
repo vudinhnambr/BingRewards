@@ -325,15 +325,26 @@ async def run_multi_accounts(config: BotConfig, target_account: str = None):
     # Collect all available account sessions
     accounts = []
     
+    def _is_valid_session(val: str) -> bool:
+        """Check if session string looks like valid base64-encoded JSON."""
+        if not val or len(val.strip()) < 50:
+            return False
+        try:
+            import base64
+            decoded = base64.b64decode(val.strip())
+            return decoded.startswith(b'{') or decoded.startswith(b'[')
+        except Exception:
+            return False
+
     # Check default session
     sec_1 = os.environ.get("MICROSOFT_SESSION") or os.environ.get("MICROSOFT_SESSION_1")
-    if sec_1 and sec_1.strip():
+    if _is_valid_session(sec_1):
         accounts.append(("Account 1", sec_1.strip()))
         
     # Check numbered sessions (MICROSOFT_SESSION_2, 3, 4, 5...)
     for i in range(2, 11):
         val = os.environ.get(f"MICROSOFT_SESSION_{i}")
-        if val and val.strip():
+        if _is_valid_session(val):
             accounts.append((f"Account {i}", val.strip()))
 
     # If no env sessions found, run default local profile
