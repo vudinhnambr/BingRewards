@@ -251,13 +251,28 @@ class RewardsDashboard:
                                 continue;
                             }
 
-                            // FIX #1: Chap nhan bat ky so diem nao >= 3
-                            const hasPoints = /\+?\s*\b([3-9]|[1-9]\d{1,3})\b\s*(pts?|points?)?/.test(text) ||
-                                             /\b(pts|points)\b/i.test(text) ||
-                                             /\d+\s*points?/i.test(text);
-                            const hasActivityLink = el.querySelector('a[href], button') !== null;
+                            // Loc chinh xac: chi chap nhan card co diem thuong HOAC link den Bing/Microsoft
+                            // Loai bo info card khong co diem
+                            const infoKeywords = [
+                                "expires in", "search for", "search 1 time", "your activity",
+                                "day streak", "days streak", "for 7 days", "for 30 days",
+                                "available points", "level 1", "level 2", "member"
+                            ];
+                            if (infoKeywords.some(k => lowerText.startsWith(k))) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
 
-                            if (!hasPoints && !hasActivityLink) continue;
+                            // Phai co so diem thuong ro rang
+                            const hasPoints = /\+\s*\d+\s*(pts?|points?)?/i.test(text) ||
+                                             /\b\d+\s*(pts|points)\b/i.test(text) ||
+                                             /\(\+\d+\)/i.test(text);
+
+                            // Hoac la card co link den Bing/Microsoft (Daily Set, quiz, poll)
+                            const activityLink = el.querySelector("a[href*='bing.com'], a[href*='rewards.bing'], a[href*='microsoft.com']");
+                            const hasBingLink = activityLink !== null;
+
+                            if (!hasPoints && !hasBingLink) continue;
 
                             // Tranh wrapper chua nhieu card con
                             let isParent = false;
