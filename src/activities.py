@@ -161,7 +161,7 @@ class RewardsDashboard:
             """)
             if expanded:
                 log_info(f"[+] Mo {expanded} accordion section(s) theo keyword")
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(0.8)
 
             # Chien luoc 2: click tat ca collapsed element co kich thuoc hop le
             await self.page.evaluate(r"""
@@ -202,7 +202,7 @@ class RewardsDashboard:
             pass
 
         base_url = self.page.url
-        max_iterations = 50
+        max_iterations = 20
         skipped_count = 0
 
         for iteration in range(max_iterations):
@@ -345,19 +345,19 @@ class RewardsDashboard:
                 )
 
                 await self._process_card(card_elem)
-                await random_delay(4.0, 7.5)
+                await random_delay(2.5, 4.5)
 
                 if self.page.url != base_url:
                     log_info(f"Quay ve dashboard: {base_url}")
                     await self.open_dashboard(base_url)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1.5)
                     await self._expand_all_accordions()
 
             except Exception as e:
                 log_warn(f"[ERR] Vong {iteration}: {e}")
                 if self.page.url != base_url:
                     await self.open_dashboard(base_url)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1.5)
 
         log_info(f"=== Hoan tat: Tong so the da xu ly = {len(self.processed_titles)} ===")
 
@@ -377,7 +377,7 @@ class RewardsDashboard:
             if get_started_link and await get_started_link.is_visible():
                 log_info("Mo trang nhiem vu khoi dong 'Get started with Rewards'...")
                 await get_started_link.click()
-                await asyncio.sleep(4)
+                await asyncio.sleep(2)
                 await self.scan_and_solve_page_cards()
         except Exception:
             pass
@@ -406,7 +406,7 @@ class RewardsDashboard:
                 log_warn(f"Khong the click card: {e}")
                 return
 
-        await asyncio.sleep(3.5)
+        await asyncio.sleep(2)
 
         # 1. New tab opened
         pages = self.context.pages
@@ -447,7 +447,7 @@ class RewardsDashboard:
 
     async def _handle_activity_page(self, page: Page):
         """Smart quiz solver: handles Polls, Warpspeed, Supersonic, Turbocharge, A/B/C and Puzzles."""
-        await asyncio.sleep(2)
+        await asyncio.sleep(1.5)
         log_info(f"Xu ly activity tai: {page.url[:80]}")
 
         # 1. Daily Poll
@@ -457,7 +457,7 @@ class RewardsDashboard:
             chosen = random.choice(poll_options)
             try:
                 await chosen.click()
-                await random_delay(4.0, 7.0)
+                await random_delay(2.0, 4.0)
                 log_success("Da binh chon Poll thanh cong!")
             except Exception as e:
                 log_warn(f"Loi khi binh chon Poll: {e}")
@@ -472,9 +472,9 @@ class RewardsDashboard:
             start_btn = await page.query_selector("#rqStartQuiz, button:has-text('Start playing'), button:has-text('Start quiz')")
             if start_btn and await start_btn.is_visible():
                 await start_btn.click()
-                await random_delay(3.0, 5.0)
+                await random_delay(1.5, 3.0)
 
-            for step in range(30):
+            for step in range(15):
                 options = await page.query_selector_all(
                     "[id^='rqAnswerOption'], .wk_OptionClickClass, .rqOption, input[type='radio'], "
                     "[class*='b_cards'] [role='button'], [class*='quizOption'], div[class*='bt_option']"
@@ -488,20 +488,20 @@ class RewardsDashboard:
                     try:
                         if await opt.is_visible():
                             await opt.click()
-                            await random_delay(2.0, 4.0)
+                            await random_delay(1.0, 2.5)
                     except Exception:
                         pass
 
                 next_btn = await page.query_selector("#rqNextQuestion, input[value='Next Question'], button:has-text('Next')")
                 if next_btn and await next_btn.is_visible():
                     await next_btn.click()
-                    await random_delay(2.0, 4.0)
+                    await random_delay(1.0, 2.0)
 
                 complete_el = await page.query_selector(".rqComplete, #quizCompleteMessage, [class*='quizComplete']")
                 if complete_el and await complete_el.is_visible():
                     log_success("Da hoan thanh Quiz thanh cong!")
                     break
-                await random_delay(1.5, 3.0)
+                await random_delay(1.0, 2.0)
             return
 
         # 3. Puzzle & Exploration Tasks
@@ -525,4 +525,4 @@ class RewardsDashboard:
             await page.evaluate("window.scrollBy(0, 450)")
         except Exception:
             pass
-        await asyncio.sleep(random.uniform(4.0, 6.0))
+        await asyncio.sleep(random.uniform(2.5, 4.0))
