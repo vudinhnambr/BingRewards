@@ -152,8 +152,21 @@ class AccountReporter:
             if item.get("date") == today_str:
                 total_gained_today += item.get("gained", 0)
 
+        # Build account number mapping from config order
+        acc_num_map = {}
+        try:
+            from src.config import BotConfig
+            cfg = BotConfig.load()
+            if cfg.account_labels:
+                for i, (label, email) in enumerate(cfg.account_labels.items(), start=1):
+                    acc_num_map[email] = i
+                    acc_num_map[email.split("@")[0]] = i
+        except Exception:
+            pass
+
         history_json = json.dumps(history, ensure_ascii=False)
         latest_json = json.dumps(latest_accounts, ensure_ascii=False)
+        acc_num_map_json = json.dumps(acc_num_map, ensure_ascii=False)
 
         html_content = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -792,10 +805,17 @@ class AccountReporter:
     <script>
         const historyData = {history_json};
         const latestAccounts = {latest_json};
+        const accNumMap = {acc_num_map_json};
 
         // Register ChartDataLabels plugin
         if (typeof ChartDataLabels !== 'undefined') {{
             Chart.register(ChartDataLabels);
+        }}
+
+        function getAccNum(email) {{
+            if (!email) return '';
+            const user = email.split('@')[0];
+            return accNumMap[email] || accNumMap[user] || '';
         }}
 
         // Client Today Date (DD/MM/YYYY)
@@ -831,13 +851,15 @@ class AccountReporter:
                 const isSuccess = acc.status === 'Thành công';
                 const isWait = acc.status === 'Chờ chạy';
                 const tagClass = isSuccess ? 'success' : (isWait ? 'wait' : 'error');
+                const accNum = getAccNum(accName);
+                const numBadge = accNum ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;font-weight:700;color:#38bdf8;background:rgba(56,189,248,0.12);padding:0.1rem 0.35rem;border-radius:0.25rem;margin-left:0.3rem;">#${{accNum}}</span>` : '';
                 
                 const row = document.createElement('div');
                 row.className = 'account-row';
                 row.innerHTML = `
                     <div class="acc-main-info">
                         <div class="acc-name" title="${{accName}}">
-                            <span>👤</span> ${{accName}}
+                            <span>👤</span> ${{accName}}${{numBadge}}
                         </div>
                         <div class="acc-meta">
                             <span>🔥 ${{acc.streak || 0}}d</span>
@@ -888,7 +910,7 @@ class AccountReporter:
                     rowsHtml += `
                         <div class="run-grid-row">
                             <div class="run-col-acc">
-                                <div class="run-col-name" title="${{item.account}}">${{item.account}}</div>
+                                <div class="run-col-name" title="${{item.account}}">${{item.account}} ${{getAccNum(item.account) ? '<span style="font-family:JetBrains Mono,monospace;font-size:0.6rem;font-weight:700;color:#38bdf8;">#' + getAccNum(item.account) + '</span>' : ''}}</div>
                                 <div class="run-col-time">${{timeOnly}} • Gốc: ${{item.start_points}}</div>
                             </div>
                             <div class="run-col-pts">
@@ -1113,21 +1135,8 @@ class AccountReporter:
             const labels = Array.from(datesSet).sort((a, b) => parseDateString(a) - parseDateString(b)).slice(-7);
             const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
 
-            // Build email -> account number mapping from config
-            const emailToNum = {{}};
-            if (latestData) {{
-                const configOrder = [
-                    'vudinhnambr@gmail.com',
-                    'vudinhnambrvt@gmail.com',
-                    'vudinhnambr1@gmail.com',
-                    'vudinhnambr2@gmail.com',
-                    'vudinhnambr3@gmail.com',
-                    'csb.qaqc@gmail.com'
-                ];
-                configOrder.forEach((email, i) => {{ emailToNum[email] = i + 1; }});
-                // Also map by username (before @)
-                configOrder.forEach((email, i) => {{ emailToNum[email.split('@')[0]] = i + 1; }});
-            }}
+            // Build email -> account number mapping
+            const emailToNum = accNumMap;
             
             const datasets = Object.keys(accDatasets).map((acc, index) => {{
                 const color = colors[index % colors.length];

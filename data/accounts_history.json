@@ -240,16 +240,6 @@
     "date": "05/09/2026"
   },
   {
-    "account": "vudinhnambr4@gmail.com",
-    "start_points": "0",
-    "end_points": "160",
-    "gained": 160,
-    "streak": "1",
-    "status": "Thành công",
-    "timestamp": "05/09/2026 10:15:00",
-    "date": "05/09/2026"
-  },
-  {
     "account": "vudinhnambr@gmail.com",
     "start_points": "452",
     "end_points": "455",
@@ -310,16 +300,6 @@
     "date": "05/09/2026"
   },
   {
-    "account": "vudinhnambr4@gmail.com",
-    "start_points": "125",
-    "end_points": "160",
-    "gained": 35,
-    "streak": "0",
-    "status": "Thành công",
-    "timestamp": "05/09/2026 12:54:59",
-    "date": "05/09/2026"
-  },
-  {
     "account": "vudinhnambr@gmail.com",
     "start_points": "455",
     "end_points": "455",
@@ -367,16 +347,6 @@
     "streak": "0",
     "status": "Thành công",
     "timestamp": "05/09/2026 16:39:24",
-    "date": "05/09/2026"
-  },
-  {
-    "account": "vudinhnambr4@gmail.com",
-    "start_points": "N/A",
-    "end_points": "N/A",
-    "gained": 0,
-    "streak": "0",
-    "status": "Lỗi đăng nhập",
-    "timestamp": "05/09/2026 18:17:29",
     "date": "05/09/2026"
   },
   {
@@ -440,16 +410,6 @@
     "date": "05/09/2026"
   },
   {
-    "account": "vudinhnambr4@gmail.com",
-    "start_points": "N/A",
-    "end_points": "N/A",
-    "gained": 0,
-    "streak": "0",
-    "status": "Lỗi đăng nhập",
-    "timestamp": "05/09/2026 22:50:29",
-    "date": "05/09/2026"
-  },
-  {
     "account": "vudinhnambr@gmail.com",
     "start_points": "455",
     "end_points": "455",
@@ -510,16 +470,6 @@
     "date": "05/09/2026"
   },
   {
-    "account": "vudinhnambr4@gmail.com",
-    "start_points": "N/A",
-    "end_points": "N/A",
-    "gained": 0,
-    "streak": "0",
-    "status": "Lỗi đăng nhập",
-    "timestamp": "05/09/2026 23:59:10",
-    "date": "05/09/2026"
-  },
-  {
     "account": "vudinhnambr@gmail.com",
     "start_points": "495",
     "end_points": "498",
@@ -576,16 +526,6 @@
     "gained": 0,
     "streak": "0",
     "status": "Thành công",
-    "timestamp": "06/09/2026 11:38:14",
-    "date": "06/09/2026"
-  },
-  {
-    "account": "vudinhnambr4@gmail.com",
-    "start_points": "N/A",
-    "end_points": "N/A",
-    "gained": 0,
-    "streak": "0",
-    "status": "Lỗi đăng nhập",
     "timestamp": "06/09/2026 11:38:14",
     "date": "06/09/2026"
   },
