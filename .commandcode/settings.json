@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "powershell",
+      "Shell(python -c  import json with open('data/accounts_history.json', 'r', encoding='utf-8') as f: data = json.load(f) print(f'Total entries: {len(data)}') print(f'vudinhnambr4 entries: {len([x for x in data if x.get(\"\") == \"vudinhnambr4@gmail.com\"])}') # Show all unique accounts accs = set(x.get('account','') for x in data) print(f'Unique accounts: {accs}') )",
+      "Shell(python -c \"import json; data=json.load(open('data/accounts_history.json','r',encoding='utf-8')); print(len(data)); accs=set(x.get('account','') for x in data); print(accs)\")",
+      "Shell(python -c \" import json with open('data/accounts_history.json', 'r', encoding='utf-8') as f: data = json.load(f) cleaned = [x for x in data if x.get('account') != 'vudinhnambr4@gmail.com'] print(f'Removed {len(data)-len(cleaned)} entries for vudinhnambr4') with open('data/accounts_history.json', 'w', encoding='utf-8') as f: json.dump(cleaned, f, ensure_ascii=False, indent=2) print(f'Kept {len(cleaned)} entries') \")"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

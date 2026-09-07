@@ -1,0 +1,12 @@
+# User Taste Profile
+- Communicates in Vietnamese; expects responses in Vietnamese when they initiate in Vietnamese. Confidence: 0.9
+- Prefers brief, direct instructions and casual tone (e.g., "làm tiếp đi", "nha"). Confidence: 0.85
+- Prefers the agent to take direct action rather than asking multiple clarifying questions — just do what's asked. Confidence: 0.8
+- Works on Windows with PowerShell; project paths use Windows-style paths (e.g., `E:\BingRewards\BingRewards`). Confidence: 0.95
+- Uses Git + GitHub as version control; expects commits to be pushed to origin promptly. Confidence: 0.9
+- Prioritizes safety and anti-detection over speed in automation scripts — explicitly said "30 min/account is fine, but must be safe, too fast gets blocked." Will accept slower delays if it reduces ban/detection risk. Do NOT reduce timing delays without explicit approval. Confidence: 0.95
+- Prefers eliminating wasted work (e.g., skip non-completable cards) rather than reducing delays to speed things up. Confidence: 0.85
+- Iterative workflow: paste log/script output → agent analyzes, fixes, and pushes → repeat. Expects the agent to infer intent from raw output rather than waiting for explicit instructions. Confidence: 0.85
+- When a change breaks previously-working functionality, strongly prefers reverting to the original working code and making only the minimal targeted fix — not layering on more complex logic (e.g., added base64 session validation + multi-strategy points detection that broke search entirely; user wanted revert + single filter fix). Confidence: 0.9
+- Dislikes over-engineering: complex validation/detection added "for safety" that introduces new bugs is worse than simple original code with a known issue. Fix the specific bug reported, don't refactor surrounding code. Confidence: 0.85
+- When the agent performs an action (revert, fix, push), always give clear "what you need to do next" instructions — not just a description of what was done. Don't assume the user understands technical shorthand like "về gốc" without explaining it plainly. Confidence: 0.85
