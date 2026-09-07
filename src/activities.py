@@ -1,10 +1,11 @@
-import asyncio
+﻿import asyncio
 import re
 import random
 from typing import Dict, List, Any, Set
 from playwright.async_api import Page, BrowserContext
 from src.config import BotConfig
 from src.utils import log_info, log_success, log_warn, random_delay
+
 
 class RewardsDashboard:
     """Intelligent, thorough automation engine for all Microsoft Rewards tasks (2026 UI & Classic)."""
@@ -15,35 +16,32 @@ class RewardsDashboard:
         self.config = config
         self.is_mobile = is_mobile
         self.processed_titles: Set[str] = set()
+        self.processed_urls: Set[str] = set()
 
     async def open_dashboard(self, url: str = "https://rewards.bing.com/dashboard") -> bool:
         """Navigate to rewards page and check authentication."""
-        log_info(f"Đang truy cập {url} ({'Mobile' if self.is_mobile else 'Desktop'})...")
+        log_info(f"Dang truy cap {url} ({'Mobile' if self.is_mobile else 'Desktop'})...")
         try:
             await self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
             await asyncio.sleep(4)
-
-            # Check if redirected to welcome or login page
             if "login.live.com" in self.page.url:
-                log_warn("Trình duyệt đang ở trang Đăng nhập (Chưa có phiên đăng nhập Microsoft)!")
+                log_warn("Trinh duyet dang o trang Dang nhap!")
                 return False
-
             return True
         except Exception as e:
-            log_warn(f"Không thể tải trang {url}: {e}")
+            log_warn(f"Khong the tai trang {url}: {e}")
             return False
 
     async def get_account_summary(self) -> Dict[str, Any]:
         """Scrape account overview (available points, streak, level, etc.)."""
         summary = {"points": "N/A", "streak": "0", "level": "Member"}
         try:
-            # Method 1: Modern 2026 UI extraction
             points_data = await self.page.evaluate(r"""
                 () => {
                     const all = Array.from(document.querySelectorAll('*'));
                     for (let i = 0; i < all.length; i++) {
                         const text = (all[i].innerText || all[i].textContent || '').trim();
-                        if (text === 'Available points' || text === 'Điểm khả dụng') {
+                        if (text === 'Available points' || text === 'Diem kha dung') {
                             let p = all[i].parentElement;
                             if (p) {
                                 const nums = p.innerText.match(/\d[\d,.]*/g);
@@ -57,7 +55,6 @@ class RewardsDashboard:
             if points_data:
                 summary["points"] = points_data
 
-            # Method 2: Classic UI selectors fallback
             if summary["points"] == "N/A":
                 selectors = [
                     "mee-rewards-counter-animation span",
@@ -74,13 +71,12 @@ class RewardsDashboard:
                             summary["points"] = m.group(0)
                             break
 
-            # Streak & Level
             streak_data = await self.page.evaluate(r"""
                 () => {
                     const all = Array.from(document.querySelectorAll('*'));
                     for (let i = 0; i < all.length; i++) {
                         const text = (all[i].innerText || all[i].textContent || '').trim();
-                        if (text.toLowerCase().includes('day streak') || text.toLowerCase().includes('chuỗi') || text.toLowerCase().includes('ngày liên tiếp')) {
+                        if (text.toLowerCase().includes('day streak') || text.toLowerCase().includes('ngay lien tiep')) {
                             const nums = text.match(/\d+/g);
                             if (nums) return nums[0];
                         }
@@ -107,7 +103,7 @@ class RewardsDashboard:
         try:
             close_buttons = await self.page.query_selector_all(
                 "[aria-label*='Close'], [aria-label*='close'], button:has(svg[data-icon-name*='Cancel']), "
-                "button:has(svg[data-icon-name*='Dismiss']), button:has-text('Close'), button:has-text('Đóng')"
+                "button:has(svg[data-icon-name*='Dismiss']), button:has-text('Close'), button:has-text('Dong')"
             )
             for btn in close_buttons:
                 if await btn.is_visible():
@@ -116,64 +112,82 @@ class RewardsDashboard:
                         await asyncio.sleep(0.8)
                     except Exception:
                         pass
-            # Escape key fallback
             await self.page.keyboard.press("Escape")
             await asyncio.sleep(0.4)
         except Exception:
             pass
 
     async def handle_drawer_actions(self):
-        """Perform actions inside opened side drawer (Check-in, Activate, Claim, Solve nested cards)."""
+        """Perform actions inside opened side drawer."""
         await asyncio.sleep(1.5)
-
-        # 1. Action Buttons in Drawers
         action_selectors = [
-            ("Check-in now", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Điểm danh')"),
-            ("Activate streak", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kích hoạt')"),
-            ("Claim points", "button:has-text('Claim points'), button:has-text('Claim'), button:has-text('Nhận điểm')"),
-            ("Search now", "button:has-text('Search now'), button:has-text('Tìm kiếm ngay')")
+            ("Check-in now", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Diem danh')"),
+            ("Activate streak", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kich hoat')"),
+            ("Claim points", "button:has-text('Claim points'), button:has-text('Claim'), button:has-text('Nhan diem')"),
+            ("Search now", "button:has-text('Search now'), button:has-text('Tim kiem ngay')")
         ]
-
         drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
         container = drawer if drawer else self.page
-
         for action_name, sel in action_selectors:
             btn = await container.query_selector(sel)
             if btn and await btn.is_visible():
-                log_info(f"✨ Bấm nút trong Side Drawer: '[bold cyan]{action_name}[/bold cyan]'")
+                log_info(f"Bam nut trong Side Drawer: {action_name}")
                 try:
                     await btn.click()
                     await asyncio.sleep(3)
                 except Exception:
                     pass
                 break
-
         await self.close_any_drawer()
 
-    async def scan_and_solve_page_cards(self):
-        """Intelligently find and solve all uncompleted activity cards on current page."""
-        # 1. Expand all accordions if collapsed
+    async def _expand_all_accordions(self):
+        """FIX #3: Mo rong tat ca accordion sections bang nhieu chien luoc."""
         try:
+            # Chien luoc 1: click theo keyword lien quan rewards
+            expanded = await self.page.evaluate(r"""
+                () => {
+                    let clicked = 0;
+                    const collapsed = Array.from(document.querySelectorAll('[aria-expanded="false"]'));
+                    for (const el of collapsed) {
+                        const text = (el.innerText || el.textContent || '').toLowerCase();
+                        const keywords = ['daily set', 'keep earning', 'explore', 'your activity', 'get started', 'earn', 'activity'];
+                        if (keywords.some(k => text.includes(k))) {
+                            el.click();
+                            clicked++;
+                        }
+                    }
+                    return clicked;
+                }
+            """)
+            if expanded:
+                log_info(f"[+] Mo {expanded} accordion section(s) theo keyword")
+                await asyncio.sleep(1.5)
+
+            # Chien luoc 2: click tat ca collapsed element co kich thuoc hop le
             await self.page.evaluate(r"""
                 () => {
-                    const accordions = Array.from(document.querySelectorAll("div[class*='cursor-pointer'], button, [role='button']"));
-                    for (const acc of accordions) {
-                        const text = (acc.innerText || acc.textContent || '').trim();
-                        if (['Daily set', 'Keep earning', 'Explore on Bing', 'Your activity', 'Get started'].some(k => text.startsWith(k))) {
-                            const isExpanded = acc.getAttribute('aria-expanded') === 'true';
-                            // If not already expanded, click to expand
-                            if (!isExpanded) {
-                                acc.click();
-                            }
+                    const collapsed = Array.from(document.querySelectorAll('[aria-expanded="false"]'));
+                    for (const el of collapsed) {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width > 100 && rect.height > 20) {
+                            el.click();
                         }
                     }
                 }
             """)
-            await asyncio.sleep(1.5)
-        except Exception:
-            pass
+            await asyncio.sleep(1.0)
 
-        # 2. Daily check-in on Bing App streak (in Your activity)
+        except Exception as e:
+            log_warn(f"Khong the mo accordion: {e}")
+
+    async def scan_and_solve_page_cards(self):
+        """Intelligently find and solve all uncompleted activity cards on current page."""
+        log_info("=== Bat dau quet tat ca the nhiem vu tren trang ===")
+
+        # B1: Mo accordion
+        await self._expand_all_accordions()
+
+        # B2: Daily check-in Bing App streak
         try:
             bing_app_tiles = await self.page.query_selector_all("div:has-text('Mobile App'), div:has-text('Bing App Streak')")
             for tile in bing_app_tiles:
@@ -187,114 +201,166 @@ class RewardsDashboard:
         except Exception:
             pass
 
-
-        # 3. Detect and solve all uncompleted cards on page dynamically
         base_url = self.page.url
-        for _ in range(35):
-            try:
-                # Ensure accordions are open
-                await self.page.evaluate(r"""
-                    () => {
-                        const accordions = Array.from(document.querySelectorAll("div[class*='cursor-pointer'], button, [role='button']"));
-                        for (const acc of accordions) {
-                            const text = (acc.innerText || acc.textContent || '').trim();
-                            if (['Daily set', 'Keep earning', 'Explore on Bing', 'Your activity', 'Get started'].some(k => text.startsWith(k))) {
-                                if (acc.getAttribute('aria-expanded') === 'false') {
-                                    acc.click();
-                                }
-                            }
-                        }
-                    }
-                """)
-            except Exception:
-                pass
+        max_iterations = 50
+        skipped_count = 0
 
+        for iteration in range(max_iterations):
             try:
+                # Re-expand moi 5 vong
+                if iteration % 5 == 0:
+                    await self._expand_all_accordions()
+
+                # FIX #1 & #2: Selector mo rong + bo filter diem cung nhac
                 next_card_info = await self.page.evaluate(r"""
                     () => {
                         const candidates = Array.from(document.querySelectorAll(
-                            "div[class*='card'], div[class*='Card'], mee-card, .mee-rewards-daily-set-item-content, " +
-                            ".mee-rewards-more-activities-card-item, a[class*='card'], [data-bi-id*='Card'], [data-bi-id*='Activity']"
+                            "mee-rewards-daily-set-item-content, " +
+                            "mee-rewards-more-activities-card-item, " +
+                            "div[class*='card']:not([class*='card-container']):not([class*='cards-group']), " +
+                            "div[class*='Card']:not([class*='CardList']):not([class*='CardGroup']), " +
+                            "mee-card, " +
+                            "li[class*='card'], " +
+                            "div[data-m], " +
+                            "[data-bi-id*='card'], " +
+                            "[data-bi-id*='Card'], " +
+                            "a[class*='reward'], " +
+                            "[class*='activity-card'], " +
+                            "[class*='activityCard'], " +
+                            "[class*='rewardCard']"
                         ));
-                        
+
                         for (let i = 0; i < candidates.length; i++) {
                             const el = candidates[i];
                             const rect = el.getBoundingClientRect();
-                            if (rect.width < 50 || rect.height < 30) continue;
-                            
-                            const text = (el.innerText || '').trim();
-                            if (!text) continue;
-                            if (text.includes('Completed') || text.includes('✓') || text.toLowerCase().includes('rewards app only')) continue;
-                            if (!/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(text)) continue;
-                            
-                            // Avoid multi-card parent wrapper
+                            if (rect.width < 40 || rect.height < 30) continue;
+                            if (el.getAttribute('data-reward-done') === 'true') continue;
+
+                            const text = (el.innerText || el.textContent || '').trim();
+                            if (!text || text.length < 5) continue;
+
+                            const lowerText = text.toLowerCase();
+                            if (
+                                lowerText.includes('completed') ||
+                                lowerText.includes('hoan thanh') ||
+                                lowerText.includes('rewards app only') ||
+                                lowerText.includes('mobile app only') ||
+                                text.includes('\u2713')
+                            ) {
+                                el.setAttribute('data-reward-done', 'true');
+                                continue;
+                            }
+
+                            // FIX #1: Chap nhan bat ky so diem nao >= 3
+                            const hasPoints = /\+?\s*\b([3-9]|[1-9]\d{1,3})\b\s*(pts?|points?)?/.test(text) ||
+                                             /\b(pts|points)\b/i.test(text) ||
+                                             /\d+\s*points?/i.test(text);
+                            const hasActivityLink = el.querySelector('a[href], button') !== null;
+
+                            if (!hasPoints && !hasActivityLink) continue;
+
+                            // Tranh wrapper chua nhieu card con
                             let isParent = false;
+                            const pointPattern = /\+?\s*\b([3-9]|[1-9]\d{1,3})\b/;
                             for (let j = 0; j < el.children.length; j++) {
-                                const cText = (el.children[j].innerText || '').trim();
-                                if (/\+?\b(5|10|15|20|25|30|40|50|100|500)\b/.test(cText) && cText.length > 5 && cText !== text) {
+                                const child = el.children[j];
+                                const cText = (child.innerText || child.textContent || '').trim();
+                                if (pointPattern.test(cText) && cText !== text && cText.length > 5) {
                                     isParent = true;
                                     break;
                                 }
                             }
                             if (isParent) continue;
-                            
-                            if (el.getAttribute('data-reward-done') === 'true') continue;
-                            
+
+                            const titleEl = el.querySelector('[class*="title"], [class*="Title"], h2, h3, h4, strong, b') || el;
+                            const title = (titleEl.innerText || titleEl.textContent || text).split('\n')[0].trim().substring(0, 100);
+                            const link = el.querySelector('a[href]');
+                            const href = link ? link.href : '';
+
                             el.setAttribute('data-reward-next', 'true');
-                            return { title: text.split('\n')[0].trim(), found: true };
+                            return {
+                                found: true,
+                                title: title,
+                                href: href,
+                                text_preview: text.substring(0, 200)
+                            };
                         }
                         return { found: false };
                     }
                 """)
 
                 if not next_card_info.get("found"):
+                    log_info(f"[OK] Khong con the nhiem vu nao (da quet {iteration} vong).")
                     break
 
-                title = next_card_info.get("title", "")
-                if not title or title in self.processed_titles:
-                    await self.page.evaluate("() => { const el = document.querySelector('[data-reward-next]'); if (el) { el.removeAttribute('data-reward-next'); el.setAttribute('data-reward-done', 'true'); } }")
+                title = next_card_info.get("title", "").strip()
+                href = next_card_info.get("href", "")
+                text_preview = next_card_info.get("text_preview", "")
+
+                # FIX #4: Dung ca title + href lam tracking key
+                tracking_key = f"{title}||{href}" if href else title
+
+                if tracking_key in self.processed_titles:
+                    log_warn(f"[SKIP] Da xu ly: '{title}' [{href}]")
+                    await self.page.evaluate(
+                        "() => { const el = document.querySelector('[data-reward-next]'); "
+                        "if (el) { el.removeAttribute('data-reward-next'); el.setAttribute('data-reward-done', 'true'); } }"
+                    )
+                    skipped_count += 1
+                    if skipped_count > 10:
+                        log_warn("[WARN] Da bo qua qua nhieu card, dung vong lap.")
+                        break
                     continue
 
                 card_elem = await self.page.query_selector("[data-reward-next='true']")
                 if not card_elem:
                     break
 
-                self.processed_titles.add(title)
-                log_info(f"-> 🎯 Đang thực hiện nhiệm vụ: '[bold green]{title}[/bold green]'...")
+                skipped_count = 0
+                self.processed_titles.add(tracking_key)
 
-                # Mark as processed in DOM so next query won't loop
-                await self.page.evaluate("(el) => { el.removeAttribute('data-reward-next'); el.setAttribute('data-reward-done', 'true'); }", card_elem)
+                log_info(f"[{iteration+1}] The nhiem vu: '{title}'")
+                if href:
+                    log_info(f"    URL: {href}")
+                log_info(f"    Preview: {text_preview[:100]}")
+
+                await self.page.evaluate(
+                    "(el) => { el.removeAttribute('data-reward-next'); el.setAttribute('data-reward-done', 'true'); }",
+                    card_elem
+                )
 
                 await self._process_card(card_elem)
                 await random_delay(4.0, 7.5)
 
-                # If page navigated away, go back to base_url to keep processing remaining cards
                 if self.page.url != base_url:
+                    log_info(f"Quay ve dashboard: {base_url}")
                     await self.open_dashboard(base_url)
                     await asyncio.sleep(2)
+                    await self._expand_all_accordions()
 
             except Exception as e:
-                log_warn(f"Lỗi khi xử lý thẻ nhiệm vụ: {e}")
-                # Ensure we return to base url if broken
+                log_warn(f"[ERR] Vong {iteration}: {e}")
                 if self.page.url != base_url:
                     await self.open_dashboard(base_url)
                     await asyncio.sleep(2)
 
+        log_info(f"=== Hoan tat: Tong so the da xu ly = {len(self.processed_titles)} ===")
+
     async def solve_all_activities(self):
-        """Complete all tasks across Dashboard, Earn page (/earn), and Get Started onboarding."""
-        # Phase 1: Main Dashboard (Daily Set + Streaks + Activities)
+        """Complete all tasks across Dashboard, Earn page, and Get Started onboarding."""
+        log_info("=== Phase 1: Dashboard (Daily Set + Streaks + Activities) ===")
         await self.open_dashboard("https://rewards.bing.com/dashboard")
         await self.scan_and_solve_page_cards()
 
-        # Phase 2: Earn Page (/earn - contains 710+ points in 'Keep earning' & 'Explore on Bing')
+        log_info("=== Phase 2: Trang /earn (Keep earning & Explore on Bing) ===")
         await self.open_dashboard("https://rewards.bing.com/earn")
         await self.scan_and_solve_page_cards()
 
-        # Phase 3: Onboarding Checklist (/welcome/getstarted - +1,320 pts)
         try:
+            log_info("=== Phase 3: Kiem tra trang Get Started Onboarding ===")
             get_started_link = await self.page.query_selector("a[href*='getstarted'], button:has-text('Earn 1320 points')")
             if get_started_link and await get_started_link.is_visible():
-                log_info("🚀 Mở trang nhiệm vụ khởi động 'Get started with Rewards'...")
+                log_info("Mo trang nhiem vu khoi dong 'Get started with Rewards'...")
                 await get_started_link.click()
                 await asyncio.sleep(4)
                 await self.scan_and_solve_page_cards()
@@ -314,20 +380,24 @@ class RewardsDashboard:
         initial_pages = len(self.context.pages)
         start_url = self.page.url
 
-        # Click the action link or card
-        click_target = await card_element.query_selector("a, button, [role='button']") or card_element
+        click_target = await card_element.query_selector("a[href], button, [role='button']") or card_element
 
         try:
             await click_target.click()
         except Exception:
-            await self.page.evaluate("(el) => el.click()", click_target)
+            try:
+                await self.page.evaluate("(el) => el.click()", click_target)
+            except Exception as e:
+                log_warn(f"Khong the click card: {e}")
+                return
 
         await asyncio.sleep(3.5)
 
-        # 1. Check if a new tab opened (typical for Daily Set quizzes, polls, and bing searches)
+        # 1. New tab opened
         pages = self.context.pages
         if len(pages) > initial_pages:
             new_page = pages[-1]
+            log_info(f"Mo tab moi: {new_page.url[:80]}")
             try:
                 await new_page.wait_for_load_state("domcontentloaded", timeout=25000)
                 await self._handle_activity_page(new_page)
@@ -340,37 +410,42 @@ class RewardsDashboard:
                 await asyncio.sleep(1.5)
             return
 
-        # 2. Check if current page navigated away in same tab
+        # 2. Same tab navigation
         if self.page.url != start_url:
+            log_info(f"Dieu huong trong tab: {self.page.url[:80]}")
             try:
                 await self._handle_activity_page(self.page)
             except Exception:
                 pass
             return
 
-        # 3. Check if a drawer was opened instead of a new tab
+        # 3. Drawer / Dialog opened
         drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
         if drawer and await drawer.is_visible():
+            log_info("Phat hien Side Drawer, dang xu ly...")
             await self.handle_drawer_actions()
             return
 
-        # 4. Handle activity on current page
+        # 4. Fallback: handle activity on current page
+        log_info("Xu ly activity tren trang hien tai...")
         await self._handle_activity_page(self.page)
 
     async def _handle_activity_page(self, page: Page):
         """Smart quiz solver: handles Polls, Warpspeed, Supersonic, Turbocharge, A/B/C and Puzzles."""
         await asyncio.sleep(2)
+        log_info(f"Xu ly activity tai: {page.url[:80]}")
 
-        # 1. Daily Poll (Bình chọn)
+        # 1. Daily Poll
         poll_options = await page.query_selector_all("#btoption0, #btoption1, .btOption, [id^='btoption'], div[class*='pollOption']")
         if poll_options:
-            log_info("📊 Phát hiện Poll (Bình chọn), đang tự động chọn đáp án...")
+            log_info(f"Phat hien Poll ({len(poll_options)} lua chon), dang binh chon...")
             chosen = random.choice(poll_options)
             try:
                 await chosen.click()
                 await random_delay(4.0, 7.0)
-            except Exception:
-                pass
+                log_success("Da binh chon Poll thanh cong!")
+            except Exception as e:
+                log_warn(f"Loi khi binh chon Poll: {e}")
             return
 
         # 2. Quizzes (Warpspeed, Supersonic, Turbocharge, A B C, This or That)
@@ -378,7 +453,7 @@ class RewardsDashboard:
             "#rqStartQuiz, #rqAnswerOption0, .wk_OptionClickClass, [id^='rqAnswerOption'], [class*='quizOption'], input[value='Start playing']"
         )
         if start_quiz_btn:
-            log_info("🧠 Phát hiện Quiz (Bài kiểm tra trắc nghiệm), đang tự động giải bài...")
+            log_info("Phat hien Quiz, dang tu dong giai...")
             start_btn = await page.query_selector("#rqStartQuiz, button:has-text('Start playing'), button:has-text('Start quiz')")
             if start_btn and await start_btn.is_visible():
                 await start_btn.click()
@@ -390,9 +465,10 @@ class RewardsDashboard:
                     "[class*='b_cards'] [role='button'], [class*='quizOption'], div[class*='bt_option']"
                 )
                 if not options:
+                    log_info(f"  Quiz step {step+1}: khong con dap an, ket thuc.")
                     break
 
-                # Click multiple visible options (essential for Supersonic Quiz where 3 correct options must be clicked)
+                log_info(f"  Quiz step {step+1}: {len(options)} dap an")
                 for opt in options:
                     try:
                         if await opt.is_visible():
@@ -401,7 +477,6 @@ class RewardsDashboard:
                     except Exception:
                         pass
 
-                # Next question button if present
                 next_btn = await page.query_selector("#rqNextQuestion, input[value='Next Question'], button:has-text('Next')")
                 if next_btn and await next_btn.is_visible():
                     await next_btn.click()
@@ -409,7 +484,7 @@ class RewardsDashboard:
 
                 complete_el = await page.query_selector(".rqComplete, #quizCompleteMessage, [class*='quizComplete']")
                 if complete_el and await complete_el.is_visible():
-                    log_success("🎉 Đã hoàn thành toàn bộ Quiz thành công!")
+                    log_success("Da hoan thanh Quiz thanh cong!")
                     break
                 await random_delay(1.5, 3.0)
             return
@@ -417,6 +492,8 @@ class RewardsDashboard:
         # 3. Puzzle & Exploration Tasks
         try:
             puzzle_tiles = await page.query_selector_all("[class*='puzzle'], [class*='tile']")
+            if puzzle_tiles:
+                log_info(f"Phat hien Puzzle ({len(puzzle_tiles)} tiles), dang click...")
             for p_tile in puzzle_tiles[:4]:
                 if await p_tile.is_visible():
                     try:
@@ -427,7 +504,8 @@ class RewardsDashboard:
         except Exception:
             pass
 
-        # 4. Standard Explore & Click-to-Earn (Scroll and hold session for tracking pixel)
+        # 4. Standard Explore (scroll + wait for tracking pixel)
+        log_info("Cuon trang va cho tracking pixel...")
         try:
             await page.evaluate("window.scrollBy(0, 450)")
         except Exception:
