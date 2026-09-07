@@ -728,5 +728,25 @@
     "status": "Thành công",
     "timestamp": "07/09/2026 10:00:01",
     "date": "07/09/2026"
+  },
+  {
+    "account": "vudinhnambr@gmail.com",
+    "start_points": "905",
+    "end_points": "905",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "07/09/2026 12:53:03",
+    "date": "07/09/2026"
+  },
+  {
+    "account": "vudinhnambrvt@gmail.com",
+    "start_points": "921",
+    "end_points": "921",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "07/09/2026 13:42:05",
+    "date": "07/09/2026"
   }
 ]
