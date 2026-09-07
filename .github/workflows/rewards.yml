@@ -21,10 +21,6 @@ on:
           - 'Account 4'
           - 'Account 5'
           - 'Account 6'
-          - 'Account 7'
-          - 'Account 8'
-          - 'Account 9'
-          - 'Account 10'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}

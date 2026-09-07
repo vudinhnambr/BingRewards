@@ -1112,12 +1112,31 @@ class AccountReporter:
 
             const labels = Array.from(datesSet).sort((a, b) => parseDateString(a) - parseDateString(b)).slice(-7);
             const colors = ['#38bdf8', '#a855f7', '#34d399', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
+
+            // Build email -> account number mapping from config
+            const emailToNum = {{}};
+            if (latestData) {{
+                const configOrder = [
+                    'vudinhnambr@gmail.com',
+                    'vudinhnambrvt@gmail.com',
+                    'vudinhnambr1@gmail.com',
+                    'vudinhnambr2@gmail.com',
+                    'vudinhnambr3@gmail.com',
+                    'csb.qaqc@gmail.com'
+                ];
+                configOrder.forEach((email, i) => {{ emailToNum[email] = i + 1; }});
+                // Also map by username (before @)
+                configOrder.forEach((email, i) => {{ emailToNum[email.split('@')[0]] = i + 1; }});
+            }}
             
             const datasets = Object.keys(accDatasets).map((acc, index) => {{
                 const color = colors[index % colors.length];
                 const data = labels.map(d => accDatasets[acc][d] || null);
+                const accUser = acc.split('@')[0];
+                const accNum = emailToNum[acc] || emailToNum[accUser] || (index + 1);
+                const shortLabel = accUser + ' #' + accNum;
                 return {{
-                    label: acc.split('@')[0],
+                    label: shortLabel,
                     data: data,
                     borderColor: color,
                     backgroundColor: color + '15',
@@ -1127,7 +1146,27 @@ class AccountReporter:
                     pointRadius: 3,
                     pointHoverRadius: 5,
                     datalabels: {{
-                        display: false
+                        display: function(ctx) {{
+                            // Chi hien thi o diem cuoi cung co data
+                            const arr = ctx.dataset.data;
+                            let lastIdx = -1;
+                            for (let i = arr.length - 1; i >= 0; i--) {{
+                                if (arr[i] !== null && arr[i] !== undefined) {{ lastIdx = i; break; }}
+                            }}
+                            return ctx.dataIndex === lastIdx;
+                        }},
+                        align: 'right',
+                        anchor: 'end',
+                        offset: 6,
+                        color: color,
+                        font: {{
+                            family: 'JetBrains Mono',
+                            size: 10,
+                            weight: 'bold'
+                        }},
+                        formatter: function(value, ctx) {{
+                            return '#' + accNum;
+                        }}
                     }}
                 }};
             }});
@@ -1138,9 +1177,14 @@ class AccountReporter:
                 options: {{
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {{
+                        padding: {{
+                            right: 45
+                        }}
+                    }},
                     plugins: {{
                         datalabels: {{
-                            display: false
+                            display: true
                         }},
                         legend: {{
                             position: 'bottom',
