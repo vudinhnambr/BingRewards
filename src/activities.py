@@ -119,7 +119,7 @@ class RewardsDashboard:
 
     async def handle_drawer_actions(self):
         """Perform actions inside opened side drawer."""
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(0.8)
         action_selectors = [
             ("Check-in now", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Diem danh')"),
             ("Activate streak", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kich hoat')"),
@@ -263,6 +263,28 @@ class RewardsDashboard:
                                 continue;
                             }
 
+                            // SKIP card khong completable
+                            if (lowerText.includes('unlocks tomorrow') ||
+                                lowerText.includes('unlocks in') ||
+                                lowerText.includes('mo khoa ngay mai') ||
+                                lowerText.includes('required') ||
+                                lowerText.includes('yeu cau')) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
+                            // SKIP donation cards (khong co diem thuc te)
+                            if (lowerText.includes('donate') || lowerText.includes('quyen gop')) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
+                            // SKIP sweepstakes/contest (khong tu dong duoc)
+                            if (lowerText.includes('sweepstakes') || lowerText.includes('contest')) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
                             // Phai co so diem thuong ro rang
                             const hasPoints = /\+\s*\d+\s*(pts?|points?)?/i.test(text) ||
                                              /\b\d+\s*(pts|points)\b/i.test(text) ||
@@ -345,7 +367,7 @@ class RewardsDashboard:
                 )
 
                 await self._process_card(card_elem)
-                await random_delay(2.5, 4.5)
+                await random_delay(1.0, 2.5)
 
                 if self.page.url != base_url:
                     log_info(f"Quay ve dashboard: {base_url}")
@@ -406,7 +428,7 @@ class RewardsDashboard:
                 log_warn(f"Khong the click card: {e}")
                 return
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(1.5)
 
         # 1. New tab opened
         pages = self.context.pages
@@ -414,7 +436,7 @@ class RewardsDashboard:
             new_page = pages[-1]
             log_info(f"Mo tab moi: {new_page.url[:80]}")
             try:
-                await new_page.wait_for_load_state("domcontentloaded", timeout=25000)
+                await new_page.wait_for_load_state("domcontentloaded", timeout=15000)
                 await self._handle_activity_page(new_page)
             finally:
                 try:
@@ -422,7 +444,7 @@ class RewardsDashboard:
                 except Exception:
                     pass
                 await self.page.bring_to_front()
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(0.8)
             return
 
         # 2. Same tab navigation
@@ -488,20 +510,20 @@ class RewardsDashboard:
                     try:
                         if await opt.is_visible():
                             await opt.click()
-                            await random_delay(1.5, 3.0)
+                            await random_delay(0.8, 1.5)
                     except Exception:
                         pass
 
                 next_btn = await page.query_selector("#rqNextQuestion, input[value='Next Question'], button:has-text('Next')")
                 if next_btn and await next_btn.is_visible():
                     await next_btn.click()
-                    await random_delay(1.0, 2.0)
+                    await random_delay(0.5, 1.0)
 
                 complete_el = await page.query_selector(".rqComplete, #quizCompleteMessage, [class*='quizComplete']")
                 if complete_el and await complete_el.is_visible():
                     log_success("Da hoan thanh Quiz thanh cong!")
                     break
-                await random_delay(1.5, 2.5)
+                await random_delay(0.8, 1.5)
             return
 
         # 3. Puzzle & Exploration Tasks
@@ -525,4 +547,6 @@ class RewardsDashboard:
             await page.evaluate("window.scrollBy(0, 450)")
         except Exception:
             pass
-        await asyncio.sleep(random.uniform(5.0, 7.0))
+        wait_time = random.uniform(3.0, 5.0)
+        log_info(f"Dang cho {wait_time:.2f}s...")
+        await asyncio.sleep(wait_time)
