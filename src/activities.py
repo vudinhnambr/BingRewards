@@ -488,7 +488,7 @@ class RewardsDashboard:
                     try:
                         if await opt.is_visible():
                             await opt.click()
-                            await random_delay(1.0, 2.5)
+                            await random_delay(1.5, 3.0)
                     except Exception:
                         pass
 
@@ -501,7 +501,7 @@ class RewardsDashboard:
                 if complete_el and await complete_el.is_visible():
                     log_success("Da hoan thanh Quiz thanh cong!")
                     break
-                await random_delay(1.0, 2.0)
+                await random_delay(1.5, 2.5)
             return
 
         # 3. Puzzle & Exploration Tasks
@@ -525,4 +525,4 @@ class RewardsDashboard:
             await page.evaluate("window.scrollBy(0, 450)")
         except Exception:
             pass
-        await asyncio.sleep(random.uniform(2.5, 4.0))
+        await asyncio.sleep(random.uniform(5.0, 7.0))
