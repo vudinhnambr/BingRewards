@@ -20,55 +20,19 @@ class BingSearcher:
         """Ensure session is signed in on Bing Search."""
         try:
             await self.page.goto("https://www.bing.com/", wait_until="domcontentloaded", timeout=30000)
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
 
-            # Check if already logged in (user avatar or rewards counter visible)
-            logged_in = await self.page.evaluate(r"""
-                () => {
-                    // Check for signed-in indicators
-                    const avatar = document.querySelector('#id_s img, #id_n, .b_scopebar #id_n, [id*="id_n"], #id_rh');
-                    const signIn = document.querySelector('#id_s, a[href*="signin"], a[href*="login"]');
-                    if (avatar) return true;
-                    if (signIn) {
-                        const text = (signIn.textContent || signIn.innerText || '').toLowerCase();
-                        // If text contains points number or user name, we're signed in
-                        if (/\d/.test(text) && !text.includes('sign') && !text.includes('đăng')) return true;
-                    }
-                    return false;
-                }
-            """)
-
-            if logged_in:
-                log_info("Đã đăng nhập Bing Search.")
-                return
-
-            # Not logged in - try to sign in
-            log_info("Chưa đăng nhập Bing Search, đang thử đăng nhập...")
             sign_in_el = await self.page.query_selector("a#id_s, a:has-text('Sign in'), a:has-text('Đăng nhập'), #id_l")
             if sign_in_el and await sign_in_el.is_visible():
-                await sign_in_el.click()
-                await asyncio.sleep(3)
-            else:
-                # Try direct auth URL
-                await self.page.goto(
-                    "https://www.bing.com/fd/auth/signin?action=interactive&provider=windows_live_id&return_url=https%3A%2F%2Fwww.bing.com%2F",
-                    wait_until="domcontentloaded",
-                    timeout=30000
-                )
-                await asyncio.sleep(3)
-
-            # Verify login
-            current_url = self.page.url
-            if "login.live.com" in current_url or "login.microsoftonline.com" in current_url:
-                log_warn(f"Bing login redirect to auth page: {current_url[:80]}")
-            else:
-                # Check if login succeeded
-                points = await self.get_current_points()
-                if points != "N/A":
-                    log_info(f"Đăng nhập Bing Search thành công. Điểm: {points}")
-                else:
-                    log_warn("Đăng nhập Bing Search không xác nhận được (điểm = N/A)")
-
+                text = (await sign_in_el.text_content() or "").strip().lower()
+                if any(k in text for k in ["sign in", "đăng nhập", "login"]):
+                    log_info("Đang đồng bộ đăng nhập tài khoản Microsoft trên Bing Search...")
+                    await self.page.goto(
+                        "https://www.bing.com/fd/auth/signin?action=interactive&provider=windows_live_id&return_url=https%3A%2F%2Fwww.bing.com%2F",
+                        wait_until="domcontentloaded",
+                        timeout=30000
+                    )
+                    await asyncio.sleep(3)
         except Exception as e:
             log_warn(f"Lỗi khi đồng bộ đăng nhập Bing: {e}")
 
