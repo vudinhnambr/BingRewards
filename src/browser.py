@@ -8,10 +8,10 @@ from src.utils import log_info, log_warn, log_success
 USER_DATA_DIR = Path(__file__).resolve().parent.parent / "browser_data"
 
 # Desktop User-Agent (Edge on Windows)
-DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0"
+DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0"
 
 # Mobile User-Agent (Edge on Android / iPhone)
-MOBILE_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36 EdgA/133.0.0.0"
+MOBILE_UA = "Mozilla/5.0 (Linux; Android 15; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36 EdgA/140.0.0.0"
 
 MOBILE_VIEWPORT = {"width": 393, "height": 851}
 DESKTOP_VIEWPORT = {"width": 1280, "height": 800}
