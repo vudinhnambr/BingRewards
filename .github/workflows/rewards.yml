@@ -2,11 +2,15 @@ name: Bing Rewards Daily Automation
 
 on:
   schedule:
-    # 1. Buổi sáng sớm: 06:15 AM (Giờ Việt Nam, UTC+7 -> 23:15 UTC hôm trước) - Cày điểm ngày mới
-    - cron: '15 23 * * *'
-    # 2. Buổi tối: 19:45 PM (Giờ Việt Nam, UTC+7 -> 12:45 UTC) - Quét nhiệm vụ & vét điểm còn sót
-    - cron: '45 12 * * *'
-  workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào trên GitHub
+    # Lần 1 - Flow 1: 00:30 AM (Giờ Việt Nam, UTC+7 -> 17:30 UTC hôm trước) - Account 1, 2, 3
+    - cron: '30 17 * * *'
+    # Lần 1 - Flow 2: 03:30 AM (Giờ Việt Nam, UTC+7 -> 20:30 UTC hôm trước) - Account 4, 5, 6
+    - cron: '30 20 * * *'
+    # Lần 2 - Flow 1: 12:30 PM (Giờ Việt Nam, UTC+7 -> 05:30 UTC) - Account 1, 2, 3
+    - cron: '30 5 * * *'
+    # Lần 2 - Flow 2: 15:30 PM (Giờ Việt Nam, UTC+7 -> 08:30 UTC) - Account 4, 5, 6
+    - cron: '30 8 * * *'
+  workflow_dispatch:
     inputs:
       target_account:
         description: '🎯 Chọn tài khoản muốn chạy (hoặc All để chạy tất cả)'
@@ -21,6 +25,15 @@ on:
           - 'Account 4'
           - 'Account 5'
           - 'Account 6'
+      flow:
+        description: '📦 Chọn flow muốn chạy'
+        required: false
+        default: 'All'
+        type: choice
+        options:
+          - 'All'
+          - 'Flow 1 (Account 1,2,3)'
+          - 'Flow 2 (Account 4,5,6)'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -30,9 +43,17 @@ permissions:
   contents: write
 
 jobs:
-  run-rewards:
+  # Flow 1: Account 1, 2, 3
+  flow-1:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 150
+    if: >-
+      ${{
+        github.event.inputs.flow == 'All' ||
+        github.event.inputs.flow == 'Flow 1 (Account 1,2,3)' ||
+        github.event_name == 'schedule' && (github.event.schedule == '30 17 * * *' || github.event.schedule == '30 5 * * *') ||
+        github.event_name == 'workflow_dispatch' && github.event.inputs.flow == ''
+      }}
 
     steps:
       - name: Checkout Code
@@ -53,7 +74,7 @@ jobs:
         run: |
           python -m playwright install chromium --with-deps
 
-      - name: Run Bing Rewards Bot
+      - name: Run Flow 1 (Account 1, 2, 3)
         env:
           TZ: 'Asia/Ho_Chi_Minh'
           MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
@@ -63,14 +84,74 @@ jobs:
           MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
           MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
           MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
-          MICROSOFT_SESSION_7: ${{ secrets.MICROSOFT_SESSION_7 }}
-          MICROSOFT_SESSION_8: ${{ secrets.MICROSOFT_SESSION_8 }}
-          MICROSOFT_SESSION_9: ${{ secrets.MICROSOFT_SESSION_9 }}
-          MICROSOFT_SESSION_10: ${{ secrets.MICROSOFT_SESSION_10 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python main.py --all --headless --account "${{ github.event.inputs.target_account || 'All' }}"
+          python main.py --all --headless --account "Account 1"
+          python main.py --all --headless --account "Account 2"
+          python main.py --all --headless --account "Account 3"
+
+      - name: Commit and Push Dashboard History
+        if: always()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          python -c "from src.reporter import AccountReporter; AccountReporter.generate_html_dashboard()"
+          git add data/accounts_history.json dashboard.html index.html
+          git diff --quiet && git diff --staged --quiet || {
+            git commit -m "chore(stats): update rewards dashboard and accounts history [skip ci]"
+            for i in {1..5}; do
+              git pull --rebase -X ours origin main && git push origin main && break || sleep 5
+            done
+          }
+
+  # Flow 2: Account 4, 5, 6
+  flow-2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    if: >-
+      ${{
+        github.event.inputs.flow == 'All' ||
+        github.event.inputs.flow == 'Flow 2 (Account 4,5,6)' ||
+        github.event_name == 'schedule' && (github.event.schedule == '30 20 * * *' || github.event.schedule == '30 8 * * *') ||
+        github.event_name == 'workflow_dispatch' && github.event.inputs.flow == ''
+      }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browsers
+        run: |
+          python -m playwright install chromium --with-deps
+
+      - name: Run Flow 2 (Account 4, 5, 6)
+        env:
+          TZ: 'Asia/Ho_Chi_Minh'
+          MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
+          MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
+          MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
+          MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
+          MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
+          MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
+          MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python main.py --all --headless --account "Account 4"
+          python main.py --all --headless --account "Account 5"
+          python main.py --all --headless --account "Account 6"
 
       - name: Commit and Push Dashboard History
         if: always()
