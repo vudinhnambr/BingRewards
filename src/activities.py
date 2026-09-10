@@ -288,6 +288,30 @@ class RewardsDashboard:
                                 continue;
                             }
 
+                            // SKIP gift card redemption pages (khong phai nhiem vu)
+                            if (lowerText.includes('gift card') || lowerText.includes('gift cards')) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
+                            // SKIP info bonus cards (chi hien thi thong tin, khong completable)
+                            if (lowerText.includes('stamp bonus') ||
+                                lowerText.includes('star bonus') ||
+                                lowerText.includes('level up bonus') ||
+                                lowerText.includes('default search bonus') ||
+                                lowerText.includes('earned last month') ||
+                                lowerText.includes('not eligible')) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
+                            // SKIP links to redeem pages
+                            const redeemLink = el.querySelector("a[href*='/redeem/']");
+                            if (redeemLink) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
                             // Phai co so diem thuong ro rang
                             const hasPoints = /\+\s*\d+\s*(pts?|points?)?/i.test(text) ||
                                              /\b\d+\s*(pts|points)\b/i.test(text) ||
