@@ -17,7 +17,7 @@ from src.config import BotConfig
 from src.browser import BrowserManager
 from src.searcher import BingSearcher
 from src.activities import RewardsDashboard
-from src.utils import console, log_info, log_success, log_warn, log_error, log_step
+from src.utils import console, log_info, log_success, log_warn, log_error, log_step, parse_pts
 
 async def login_session(config: BotConfig, is_mobile: bool = False, force_clean: bool = True):
     """Open browser in visible mode for user to log in."""
@@ -221,12 +221,6 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
         notifier = TelegramNotifier()
         if notifier.is_configured:
             notifier.send_rewards_summary(start_pts=start_points, end_pts=end_points, status="Thành công", account_label=account_label)
-
-        def parse_pts(val):
-            try:
-                return int(str(val).replace(",", "").replace(".", "").strip())
-            except Exception:
-                return 0
 
         gained = max(0, parse_pts(end_points) - parse_pts(start_points))
         return {"account": account_name, "start_points": str(start_points), "end_points": str(end_points), "gained": gained, "streak": str(streak), "status": "Thành công"}

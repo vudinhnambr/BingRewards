@@ -44,3 +44,13 @@ async def random_delay(min_sec: float = 6.0, max_sec: float = 12.0, reason: str 
     else:
         log_info(f"Đang chờ {delay}s...")
     await asyncio.sleep(delay)
+
+
+def parse_pts(val) -> int:
+    """Parse point value from various formats ('1,234', '1.234', 'N/A', None) to int."""
+    if val is None or str(val).strip().upper() == "N/A":
+        return 0
+    try:
+        return int(str(val).replace(",", "").replace(".", "").strip())
+    except (ValueError, TypeError):
+        return 0

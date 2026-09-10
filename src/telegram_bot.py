@@ -1,7 +1,7 @@
 import os
 import requests
 from typing import Optional
-from src.utils import log_info, log_warn, log_success
+from src.utils import log_info, log_warn, log_success, parse_pts
 
 class TelegramNotifier:
     """Sends notifications to Telegram channel or direct chat."""
@@ -43,8 +43,8 @@ class TelegramNotifier:
     def send_rewards_summary(self, start_pts: str, end_pts: str, status: str = "Thành công", account_label: str = ""):
         """Send standardized Rewards daily summary."""
         try:
-            start_num = int(str(start_pts).replace(",", "").replace(".", "")) if str(start_pts).replace(",", "").replace(".", "").isdigit() else 0
-            end_num = int(str(end_pts).replace(",", "").replace(".", "")) if str(end_pts).replace(",", "").replace(".", "").isdigit() else 0
+            start_num = parse_pts(start_pts)
+            end_num = parse_pts(end_pts)
             gained = end_num - start_num if end_num >= start_num else 0
             gained_str = f"+{gained}" if gained > 0 else f"{gained}"
         except Exception:

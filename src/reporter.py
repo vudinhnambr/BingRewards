@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
+from src.utils import parse_pts
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 HISTORY_FILE = DATA_DIR / "accounts_history.json"
@@ -52,14 +53,6 @@ class AccountReporter:
             pass
 
         history = cls.load_history()
-
-        def parse_pts(val):
-            try:
-                if val == "N/A" or val is None:
-                    return 0
-                return int(str(val).replace(",", "").replace(".", "").strip())
-            except Exception:
-                return 0
 
         start_num = parse_pts(start_pts)
         end_num = parse_pts(end_pts)
