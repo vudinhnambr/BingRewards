@@ -15,8 +15,8 @@ class BotConfig:
     desktop_searches: int = 35
     run_mobile_search: bool = True
     mobile_searches: int = 25
-    min_delay_sec: float = 6.0
-    max_delay_sec: float = 12.0
+    min_delay_sec: float = 5.5
+    max_delay_sec: float = 12.5
     fast_mode: bool = False
     run_msn_news: bool = True
     telegram_bot_token: str = ""

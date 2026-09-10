@@ -112,7 +112,7 @@ class BingSearcher:
                         log_info(f"Nghỉ giãn cách batch sau {self.config.search_cooldown_batch_size} lượt: {cooldown:.1f}s...")
                         await asyncio.sleep(cooldown)
                     else:
-                        await random_delay(self.config.min_delay_sec + 3.0, self.config.max_delay_sec + 8.0)
+                        await random_delay(self.config.min_delay_sec, self.config.max_delay_sec)
 
                 except Exception as e:
                     log_warn(f"Lỗi ở lượt tìm kiếm #{i} ('{query}'): {e}")
