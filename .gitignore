@@ -13,6 +13,13 @@ build/
 browser_data/
 browser_data_mobile/
 *.log
+session.json
+session_base64.txt
+sessions.md
+sessions.env
+
+# Temporary files
+anh tam/
 
 # VS Code / IDE
 .vscode/
