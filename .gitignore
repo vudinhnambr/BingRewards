@@ -19,7 +19,7 @@ sessions.md
 sessions.env
 
 # Temporary files
-anh tam/
+.anh tam/
 run_local_all.bat
 
 # VS Code / IDE
