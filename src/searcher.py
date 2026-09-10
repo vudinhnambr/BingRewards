@@ -39,7 +39,8 @@ class BingSearcher:
     async def get_current_points(self) -> str:
         """Attempt to extract current points counter from Bing header."""
         try:
-            for selector in ["#id_rc", "#rh_meter", ".id_rc", "#id_rh", "#b_id_rc", "#id_s", "#rh_anim_container"]:
+            # Strategy 1: Try known selectors
+            for selector in ["#id_rc", "#rh_meter", ".id_rc", "#id_rh", "#b_id_rc", "#rh_anim_container", "[id*='reward'] [class*='point']", "[data-bm] [id*='rc']"]:
                 el = await self.page.query_selector(selector)
                 if el:
                     text = (await el.text_content() or "").strip()
@@ -47,6 +48,39 @@ class BingSearcher:
                         m = re.search(r"[\d,.]+", text)
                         if m:
                             return m.group(0)
+
+            # Strategy 2: JavaScript scan for points-related elements in header
+            points_text = await self.page.evaluate(r"""
+                () => {
+                    // Look for elements containing "points" or "pts" text in the header area
+                    const headerEls = document.querySelectorAll('#b_header, #id_h, header, [class*="header"], [id*="reward"]');
+                    for (const header of headerEls) {
+                        const all = header.querySelectorAll('*');
+                        for (const el of all) {
+                            const text = (el.innerText || el.textContent || '').trim();
+                            // Match standalone numbers (likely points counter)
+                            if (/^\d[\d,.]*$/.test(text) && text.length <= 8) {
+                                const num = parseInt(text.replace(/[,.\s]/g, ''));
+                                if (num > 0 && num < 1000000) {
+                                    return text;
+                                }
+                            }
+                        }
+                    }
+                    // Fallback: search entire page for rewards counter patterns
+                    const allEls = document.querySelectorAll('[id*="rc"], [id*="point"], [class*="point"], [class*="reward"]');
+                    for (const el of allEls) {
+                        const text = (el.innerText || el.textContent || '').trim();
+                        if (/^\d[\d,.]*$/.test(text) && text.length <= 8) {
+                            const num = parseInt(text.replace(/[,.\s]/g, ''));
+                            if (num > 0 && num < 1000000) return text;
+                        }
+                    }
+                    return null;
+                }
+            """)
+            if points_text:
+                return points_text.strip()
         except Exception:
             pass
         return "N/A"
