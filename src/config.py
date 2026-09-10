@@ -19,8 +19,8 @@ class BotConfig:
     max_delay_sec: float = 12.0
     fast_mode: bool = False
     run_msn_news: bool = True
-    telegram_bot_token: str = "8811422226:AAFyzSIvToONg4WMSCSxQMktxUGQ8Z8rp8w"
-    telegram_chat_id: str = "1023253824"
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
     search_cooldown_batch_size: int = 4
     search_cooldown_wait_sec: float = 15.0
     account_labels: dict = None
