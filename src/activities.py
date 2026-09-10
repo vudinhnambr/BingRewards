@@ -124,7 +124,10 @@ class RewardsDashboard:
             ("Check-in now", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Diem danh')"),
             ("Activate streak", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kich hoat')"),
             ("Claim points", "button:has-text('Claim points'), button:has-text('Claim'), button:has-text('Nhan diem')"),
-            ("Search now", "button:has-text('Search now'), button:has-text('Tim kiem ngay')")
+            ("Search now", "button:has-text('Search now'), button:has-text('Tim kiem ngay')"),
+            ("Get stamp", "button:has-text('Get stamp'), button:has-text('Stamp'), button:has-text('Collect')"),
+            ("Redeem", "button:has-text('Redeem'), button:has-text('Get reward'), button:has-text('Nhan thuong')"),
+            ("Complete", "button:has-text('Complete'), button:has-text('Done'), button:has-text('Finish')")
         ]
         drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
         container = drawer if drawer else self.page
@@ -254,11 +257,11 @@ class RewardsDashboard:
                             // Loc chinh xac: chi chap nhan card co diem thuong HOAC link den Bing/Microsoft
                             // Loai bo info card khong co diem
                             const infoKeywords = [
-                                "expires in", "search for", "search 1 time", "your activity",
-                                "day streak", "days streak", "for 7 days", "for 30 days",
+                                "expires in", "your activity",
                                 "available points", "level 1", "level 2", "member"
                             ];
-                            if (infoKeywords.some(k => lowerText.startsWith(k))) {
+                            // Only skip if text is very short and matches info keywords exactly
+                            if (text.length < 30 && infoKeywords.some(k => lowerText.startsWith(k))) {
                                 el.setAttribute("data-reward-done", "true");
                                 continue;
                             }
@@ -530,12 +533,12 @@ class RewardsDashboard:
         try:
             puzzle_tiles = await page.query_selector_all("[class*='puzzle'], [class*='tile']")
             if puzzle_tiles:
-                log_info(f"Phat hien Puzzle ({len(puzzle_tiles)} tiles), dang click...")
-            for p_tile in puzzle_tiles[:4]:
+                log_info(f"Phat hien Puzzle ({len(puzzle_tiles)} tiles), dang click tat ca...")
+            for p_tile in puzzle_tiles:  # Click ALL tiles, not just 4
                 if await p_tile.is_visible():
                     try:
                         await p_tile.click()
-                        await asyncio.sleep(0.8)
+                        await asyncio.sleep(0.5)
                     except Exception:
                         pass
         except Exception:
