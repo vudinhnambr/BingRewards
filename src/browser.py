@@ -26,6 +26,14 @@ class BrowserManager:
 
     async def get_context(self, is_mobile: bool = False, force_headed: bool = False, is_login: bool = False) -> BrowserContext:
         """Launch or return persistent browser context (unified profile)."""
+        # Close existing context before creating a new one to avoid leaks
+        if self.context:
+            try:
+                await self.context.close()
+            except Exception:
+                pass
+            self.context = None
+
         profile_dir = USER_DATA_DIR / "desktop_profile"
         profile_dir.mkdir(parents=True, exist_ok=True)
 
