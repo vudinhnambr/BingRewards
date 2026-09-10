@@ -20,6 +20,7 @@ sessions.env
 
 # Temporary files
 anh tam/
+run_local_all.bat
 
 # VS Code / IDE
 .vscode/
