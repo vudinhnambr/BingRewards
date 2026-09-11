@@ -1198,5 +1198,35 @@
     "status": "Thành công",
     "timestamp": "11/09/2026 19:54:50",
     "date": "11/09/2026"
+  },
+  {
+    "account": "vudinhnambr2@gmail.com",
+    "start_points": "1,170",
+    "end_points": "1,170",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "12/09/2026 01:01:16",
+    "date": "12/09/2026"
+  },
+  {
+    "account": "vudinhnambr3@gmail.com",
+    "start_points": "845",
+    "end_points": "885",
+    "gained": 40,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "12/09/2026 01:51:51",
+    "date": "12/09/2026"
+  },
+  {
+    "account": "csb.qaqc@gmail.com",
+    "start_points": "915",
+    "end_points": "945",
+    "gained": 30,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "12/09/2026 02:46:44",
+    "date": "12/09/2026"
   }
 ]
