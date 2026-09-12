@@ -25,15 +25,6 @@ on:
           - 'Account 4'
           - 'Account 5'
           - 'Account 6'
-      flow:
-        description: '📦 Chọn flow muốn chạy'
-        required: false
-        default: 'All'
-        type: choice
-        options:
-          - 'All'
-          - 'Flow 1 (Account 1,2,3)'
-          - 'Flow 2 (Account 4,5,6)'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -49,10 +40,13 @@ jobs:
     timeout-minutes: 180
     if: >-
       ${{
-        github.event.inputs.flow == 'All' ||
-        github.event.inputs.flow == 'Flow 1 (Account 1,2,3)' ||
         github.event_name == 'schedule' && (github.event.schedule == '30 17 * * *' || github.event.schedule == '30 5 * * *') ||
-        github.event_name == 'workflow_dispatch' && github.event.inputs.flow == ''
+        github.event_name == 'workflow_dispatch' && (
+          github.event.inputs.target_account == 'All' ||
+          github.event.inputs.target_account == 'Account 1' ||
+          github.event.inputs.target_account == 'Account 2' ||
+          github.event.inputs.target_account == 'Account 3'
+        )
       }}
 
     steps:
@@ -87,9 +81,14 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python main.py --all --headless --account "Account 1"
-          python main.py --all --headless --account "Account 2"
-          python main.py --all --headless --account "Account 3"
+          TARGET="${{ github.event.inputs.target_account || 'All' }}"
+          if [ "$TARGET" = "All" ]; then
+            python main.py --all --headless --account "Account 1"
+            python main.py --all --headless --account "Account 2"
+            python main.py --all --headless --account "Account 3"
+          else
+            python main.py --all --headless --account "$TARGET"
+          fi
 
       - name: Commit and Push Dashboard History
         if: always()
@@ -111,10 +110,13 @@ jobs:
     timeout-minutes: 180
     if: >-
       ${{
-        github.event.inputs.flow == 'All' ||
-        github.event.inputs.flow == 'Flow 2 (Account 4,5,6)' ||
         github.event_name == 'schedule' && (github.event.schedule == '30 20 * * *' || github.event.schedule == '30 8 * * *') ||
-        github.event_name == 'workflow_dispatch' && github.event.inputs.flow == ''
+        github.event_name == 'workflow_dispatch' && (
+          github.event.inputs.target_account == 'All' ||
+          github.event.inputs.target_account == 'Account 4' ||
+          github.event.inputs.target_account == 'Account 5' ||
+          github.event.inputs.target_account == 'Account 6'
+        )
       }}
 
     steps:
@@ -149,9 +151,14 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python main.py --all --headless --account "Account 4"
-          python main.py --all --headless --account "Account 5"
-          python main.py --all --headless --account "Account 6"
+          TARGET="${{ github.event.inputs.target_account || 'All' }}"
+          if [ "$TARGET" = "All" ]; then
+            python main.py --all --headless --account "Account 4"
+            python main.py --all --headless --account "Account 5"
+            python main.py --all --headless --account "Account 6"
+          else
+            python main.py --all --headless --account "$TARGET"
+          fi
 
       - name: Commit and Push Dashboard History
         if: always()
