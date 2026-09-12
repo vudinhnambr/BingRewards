@@ -49,9 +49,22 @@ class BotConfig:
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+            conf = cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
         except Exception:
-            return cls()
+            conf = cls()
+
+        # Fill missing fields from example config
+        if EXAMPLE_CONFIG_PATH.exists():
+            try:
+                with open(EXAMPLE_CONFIG_PATH, "r", encoding="utf-8") as f:
+                    ex_data = json.load(f)
+                for k, v in ex_data.items():
+                    if k in cls.__dataclass_fields__ and not str(getattr(conf, k, "")):
+                        setattr(conf, k, v)
+            except Exception:
+                pass
+
+        return conf
 
     def save(self):
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
