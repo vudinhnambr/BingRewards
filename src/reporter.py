@@ -48,12 +48,13 @@ class AccountReporter:
         try:
             from src.config import BotConfig
             cfg = BotConfig.load()
+            # Map known account labels to emails; if not found, keep original label
             if cfg.account_labels and account_label in cfg.account_labels:
                 account_label = cfg.account_labels[account_label]
         except Exception:
             pass
 
-        # Fallback: parse email from config.json directly
+        # Fallback: parse email from config.json directly for generic "Account X" labels
         if account_label.startswith("Account ") and CONFIG_PATH.exists():
             try:
                 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -64,7 +65,17 @@ class AccountReporter:
             except Exception:
                 pass
 
-        history = cls.load_history()
+        # Map "Local Account" to the first configured email if possible
+        if account_label == "Local Account" and CONFIG_PATH.exists():
+            try:
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                labels = data.get("account_labels", {})
+                if labels:
+                    # Use the first email in the mapping
+                    account_label = next(iter(labels.values()))
+            except Exception:
+                pass
 
         start_num = parse_pts(start_pts)
         end_num = parse_pts(end_pts)

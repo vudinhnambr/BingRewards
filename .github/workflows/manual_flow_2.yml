@@ -1,0 +1,74 @@
+name: Manual Flow 2 (Accounts 4,5,6)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_account:
+        description: '🎯 Chọn tài khoản muốn chạy (hoặc All để chạy tất cả)'
+        required: true
+        default: 'All'
+        type: choice
+        options:
+          - 'All'
+          - 'Account 4'
+          - 'Account 5'
+          - 'Account 6'
+
+jobs:
+  manual-flow-2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browsers
+        run: |
+          python -m playwright install chromium --with-deps
+
+      - name: Run Flow 2 (Account 4, 5, 6)
+        env:
+          TZ: 'Asia/Ho_Chi_Minh'
+          MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
+          MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
+          MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
+          MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
+          MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
+          MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
+          MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          TARGET="${{ github.event.inputs.target_account || 'All' }}"
+          if [ "$TARGET" = "All" ]; then
+            python main.py --all --headless --account "Account 4"
+            python main.py --all --headless --account "Account 5"
+            python main.py --all --headless --account "Account 6"
+          else
+            python main.py --all --headless --account "$TARGET"
+          fi
+
+      - name: Commit and Push Dashboard History
+        if: always()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          python -c "from src.reporter import AccountReporter; AccountReporter.generate_html_dashboard()"
+          git add data/accounts_history.json dashboard.html index.html
+          git diff --quiet && git diff --staged --quiet || {
+            git commit -m "chore(stats): update rewards dashboard and accounts history [skip ci]"
+            for i in {1..5}; do
+              git pull --rebase -X ours origin main && git push origin main && break || sleep 5
+            done
+          }
