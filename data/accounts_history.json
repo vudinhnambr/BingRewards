@@ -1310,43 +1310,13 @@
     "date": "12/09/2026"
   },
   {
-    "account": "Account 6",
-    "start_points": "955",
-    "end_points": "1,040",
-    "gained": 85,
+    "account": "Local Account",
+    "start_points": "N/A",
+    "end_points": "N/A",
+    "gained": 0,
     "streak": "0",
-    "status": "Thành công",
-    "timestamp": "12/09/2026 16:21:43",
-    "date": "12/09/2026"
-  },
-  {
-    "account": "Account 5",
-    "start_points": "915",
-    "end_points": "990",
-    "gained": 75,
-    "streak": "0",
-    "status": "Thành công",
-    "timestamp": "12/09/2026 17:49:04",
-    "date": "12/09/2026"
-  },
-  {
-    "account": "Account 1",
-    "start_points": "2,854",
-    "end_points": "2,908",
-    "gained": 54,
-    "streak": "0",
-    "status": "Thành công",
-    "timestamp": "12/09/2026 19:18:16",
-    "date": "12/09/2026"
-  },
-  {
-    "account": "Account 4",
-    "start_points": "1,670",
-    "end_points": "1,720",
-    "gained": 50,
-    "streak": "0",
-    "status": "Thành công",
-    "timestamp": "12/09/2026 20:15:25",
+    "status": "Lỗi đăng nhập",
+    "timestamp": "12/09/2026 21:51:51",
     "date": "12/09/2026"
   }
 ]
