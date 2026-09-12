@@ -2,7 +2,7 @@ import asyncio
 import re
 import json
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from playwright.async_api import Page
 from src.utils import log_info, log_warn, log_success, is_bot_blocked
 
@@ -219,8 +219,7 @@ class UrlRewardHandler:
             return False
 
         try:
-            vn_tz = timezone(timedelta(hours=7))
-            tz_offset = int(-datetime.now(vn_tz).utcoffset().total_seconds() / 60)
+            tz_offset = int(-datetime.now().astimezone().utcoffset().total_seconds() / 60)
 
             body = json.dumps([
                 offer.get("hash", ""),
