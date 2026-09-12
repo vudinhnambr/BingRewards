@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
+EXAMPLE_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.example.json"
 
 @dataclass
 class BotConfig:
@@ -33,6 +34,15 @@ class BotConfig:
     def load(cls) -> "BotConfig":
         if not CONFIG_PATH.exists():
             default_conf = cls()
+            if EXAMPLE_CONFIG_PATH.exists():
+                try:
+                    with open(EXAMPLE_CONFIG_PATH, "r", encoding="utf-8") as f:
+                        ex_data = json.load(f)
+                    for k, v in ex_data.items():
+                        if k in cls.__dataclass_fields__ and not str(getattr(default_conf, k, "")):
+                            setattr(default_conf, k, v)
+                except Exception:
+                    pass
             default_conf.save()
             return default_conf
 

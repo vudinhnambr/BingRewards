@@ -1,0 +1,26 @@
+{
+  "headless": false,
+  "browser_channel": "msedge",
+  "run_daily_set": true,
+  "run_more_activities": true,
+  "run_desktop_search": true,
+  "desktop_searches": 30,
+  "run_mobile_search": true,
+  "mobile_searches": 20,
+  "min_delay_sec": 5.5,
+  "max_delay_sec": 12.5,
+  "fast_mode": false,
+  "run_msn_news": true,
+  "telegram_bot_token": "",
+  "telegram_chat_id": "",
+  "search_cooldown_batch_size": 5,
+  "search_cooldown_wait_sec": 4.0,
+  "account_labels": {
+    "Account 1": "your-email-1@gmail.com",
+    "Account 2": "your-email-2@gmail.com",
+    "Account 3": "your-email-3@gmail.com",
+    "Account 4": "your-email-4@gmail.com",
+    "Account 5": "your-email-5@gmail.com",
+    "Account 6": "your-email-6@gmail.com"
+  }
+}

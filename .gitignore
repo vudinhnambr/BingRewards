@@ -18,6 +18,10 @@ session_base64.txt
 sessions.md
 sessions.env
 
+# Config (contains secrets - use config.example.json as template)
+config.json
+config.local.json
+
 # Temporary files
 .anh tam/
 run_local_all.bat

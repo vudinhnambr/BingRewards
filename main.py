@@ -193,12 +193,13 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
 
             await bm.close()
 
-        # Phase 3: Final Point Summary
+        # Phase 3: Final Point Summary + UrlReward retry on /earn
         log_step(f"TỔNG KẾT {f'({account_label})' if account_label else ''}")
         context_final = await bm.get_context(is_mobile=False)
         page_final = await context_final.new_page()
         dash_final = RewardsDashboard(page_final, context_final, config)
-        if await dash_final.open_dashboard():
+        if await dash_final.open_dashboard("https://rewards.bing.com/earn"):
+            await dash_final.handle_urlreward_promotions()
             end_summary = await dash_final.get_account_summary()
             end_points = end_summary.get("points", "N/A")
             streak = end_summary.get("streak", streak)

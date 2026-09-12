@@ -420,6 +420,9 @@ class RewardsDashboard:
         await self.open_dashboard("https://rewards.bing.com/earn")
         await self.scan_and_solve_page_cards()
 
+        log_info("=== Phase 2.5: UrlReward Server-Action Handler ===")
+        await self.handle_urlreward_promotions()
+
         try:
             log_info("=== Phase 3: Kiem tra trang Get Started Onboarding ===")
             get_started_link = await self.page.query_selector("a[href*='getstarted'], button:has-text('Earn 1320 points')")
@@ -430,6 +433,27 @@ class RewardsDashboard:
                 await self.scan_and_solve_page_cards()
         except Exception:
             pass
+
+    async def handle_urlreward_promotions(self):
+        """Find and complete urlreward promotions via Next.js server actions."""
+        try:
+            from src.urlreward import UrlRewardHandler
+            handler = UrlRewardHandler(self.page)
+            result = await handler.run()
+
+            if result.get("completed"):
+                try:
+                    from src.telegram_bot import TelegramNotifier
+                    notifier = TelegramNotifier()
+                    if notifier.is_configured:
+                        lines = "\n".join(f"  ✅ {t}" for t in result["completed"])
+                        notifier.send_message(f"🎯 <b>UrlReward Completed:</b>\n{lines}")
+                except Exception:
+                    pass
+            return result
+        except Exception as e:
+            log_warn(f"handle_urlreward_promotions error: {e}")
+            return {"status": "error", "completed": [], "skipped": []}
 
     async def solve_daily_set(self):
         """Unified entry point to solve all tasks."""

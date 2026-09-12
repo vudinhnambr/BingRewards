@@ -2,6 +2,8 @@ import random
 import time
 import asyncio
 import sys
+from typing import Tuple
+from playwright.async_api import Page
 from rich.console import Console
 from rich.theme import Theme
 
@@ -54,3 +56,37 @@ def parse_pts(val) -> int:
         return int(str(val).replace(",", "").replace(".", "").strip())
     except (ValueError, TypeError):
         return 0
+
+
+async def is_bot_blocked(page: Page) -> Tuple[bool, str]:
+    """Detect if Microsoft is serving a bot-detection / warning page.
+
+    Returns: (is_blocked, reason)
+        reason is one of: captcha, warning, redirect, empty, blocked_title
+    """
+    try:
+        url = page.url.lower()
+        title = (await page.title()).lower()
+        body_text = (await page.evaluate("document.body?.innerText || ''")).lower()
+
+        signals = [
+            ("captcha",
+             "captcha" in body_text or "verify you're human" in body_text
+             or "i'm not a robot" in body_text),
+            ("warning",
+             "unusual traffic" in body_text or "automated queries" in body_text
+             or "your computer or network" in body_text),
+            ("redirect",
+             "login.live.com" in url and "/dashboard" not in url and "/earn" not in url),
+            ("empty",
+             len(body_text.strip()) < 50 and "rewards" not in body_text),
+            ("blocked_title",
+             "access denied" in title or "sorry" in title),
+        ]
+
+        for reason, detected in signals:
+            if detected:
+                return True, reason
+        return False, ""
+    except Exception:
+        return False, ""
