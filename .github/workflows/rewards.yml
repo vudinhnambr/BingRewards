@@ -46,7 +46,7 @@ jobs:
   # Flow 1: Account 1, 2, 3
   flow-1:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     if: >-
       ${{
         github.event.inputs.flow == 'All' ||
@@ -108,7 +108,7 @@ jobs:
   # Flow 2: Account 4, 5, 6
   flow-2:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     if: >-
       ${{
         github.event.inputs.flow == 'All' ||
