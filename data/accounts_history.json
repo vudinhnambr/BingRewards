@@ -1288,5 +1288,15 @@
     "status": "Thành công",
     "timestamp": "12/09/2026 11:59:50",
     "date": "12/09/2026"
+  },
+  {
+    "account": "Account 4",
+    "start_points": "1,170",
+    "end_points": "N/A",
+    "gained": 0,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "12/09/2026 13:11:37",
+    "date": "12/09/2026"
   }
 ]
