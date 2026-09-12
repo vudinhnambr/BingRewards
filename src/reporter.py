@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 from src.utils import parse_pts
+from src.config import CONFIG_PATH
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 HISTORY_FILE = DATA_DIR / "accounts_history.json"
@@ -51,6 +52,17 @@ class AccountReporter:
                 account_label = cfg.account_labels[account_label]
         except Exception:
             pass
+
+        # Fallback: parse email from config.json directly
+        if account_label.startswith("Account ") and CONFIG_PATH.exists():
+            try:
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                labels = data.get("account_labels", {})
+                if account_label in labels:
+                    account_label = labels[account_label]
+            except Exception:
+                pass
 
         history = cls.load_history()
 
