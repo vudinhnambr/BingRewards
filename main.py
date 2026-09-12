@@ -198,8 +198,13 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
         context_final = await bm.get_context(is_mobile=False)
         page_final = await context_final.new_page()
         dash_final = RewardsDashboard(page_final, context_final, config)
-        if await dash_final.open_dashboard("https://rewards.bing.com/earn"):
+
+        # Try /earn first for urlreward, then fallback to /dashboard for points
+        earn_loaded = await dash_final.open_dashboard("https://rewards.bing.com/earn")
+        if earn_loaded:
             await dash_final.handle_urlreward_promotions()
+        # Always read final points from /dashboard (more reliable)
+        if await dash_final.open_dashboard("https://rewards.bing.com/dashboard"):
             end_summary = await dash_final.get_account_summary()
             end_points = end_summary.get("points", "N/A")
             streak = end_summary.get("streak", streak)
