@@ -78,16 +78,22 @@ class UrlRewardHandler:
     async def bootstrap(self) -> bool:
         """Visit /earn, dismiss welcome dialog, extract tokens."""
         try:
-            await self.page.goto(
-                "https://rewards.bing.com/earn",
-                wait_until="domcontentloaded",
-                timeout=30000,
-            )
-            await asyncio.sleep(3)
+            # Try /earn first, fallback to /dashboard
+            for url in ["https://rewards.bing.com/earn", "https://rewards.bing.com/dashboard"]:
+                try:
+                    await self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    await asyncio.sleep(3)
+                    body_text = await self.page.evaluate("document.body?.innerText?.length || 0")
+                    if body_text > 200:
+                        log_info(f"Bootstrap: loaded {url} ({body_text} chars)")
+                        break
+                except Exception:
+                    continue
 
+            # Dismiss welcome dialog if present
             try:
                 close_btn = await self.page.wait_for_selector(
-                    "section[role='dialog'] button[slot='close']",
+                    "section[role='dialog'] button[slot='close'], [role='dialog'] button[aria-label*='Close']",
                     timeout=3000,
                 )
                 await close_btn.click()
@@ -96,22 +102,34 @@ class UrlRewardHandler:
             except Exception:
                 pass
 
+            # Wait for any dashboard content (not just section#dailyset)
             try:
-                await self.page.wait_for_selector("section#dailyset", timeout=10000)
+                await self.page.wait_for_selector(
+                    "section#dailyset, [class*='dashboard'], [class*='Dashboard'], [data-testid], mee-card",
+                    timeout=10000,
+                )
             except Exception:
-                log_warn("section#dailyset not found - may be bot-blocked or new UI")
+                log_warn("Dashboard content not fully loaded - continuing anyway")
 
+            # Extract router tree from RSC payload
             self.router_tree = await self.page.evaluate(
                 """
                 () => {
                     const scripts = document.querySelectorAll('script');
                     for (const s of scripts) {
                         const txt = s.textContent || '';
-                        if (txt.includes('routerState') || txt.includes('__next_f')) {
+                        if (txt.includes('routerState') || txt.includes('__next_f')
+                            || txt.includes('server-actions') || txt.includes('actionId')) {
                             return txt.substring(0, 50000);
                         }
                     }
-                    return null;
+                    // Fallback: return all inline script content joined
+                    let combined = '';
+                    for (const s of scripts) {
+                        if (s.textContent) combined += s.textContent + '\\n';
+                        if (combined.length > 50000) break;
+                    }
+                    return combined || null;
                 }
                 """
             )
@@ -120,7 +138,11 @@ class UrlRewardHandler:
             self.deployment_id = await self._extract_deployment_id()
 
             if not self.action_id:
-                log_warn("Failed to resolve Next-Action ID (dashboard may have changed)")
+                log_warn("Failed to resolve Next-Action ID - trying inline script extraction")
+                self.action_id = await self._resolve_action_id_from_inline()
+
+            if not self.action_id:
+                log_warn("All action_id resolution methods failed - urlreward phase will skip")
                 return False
 
             log_info(f"Bootstrap OK: action_id={self.action_id[:12]}...")
@@ -137,11 +159,12 @@ class UrlRewardHandler:
                 """
                 () => Array.from(document.querySelectorAll('script[src]'))
                     .map(s => s.src)
-                    .filter(s => s.includes('/_next/static/chunks/'))
+                    .filter(s => s.includes('/_next/static/chunks/') || s.includes('/_next/static/'))
                 """
             )
 
-            for url in chunk_urls[:30]:
+            log_info(f"Found {len(chunk_urls)} JS chunks to scan")
+            for url in chunk_urls[:50]:
                 try:
                     resp = await self.page.request.get(url, timeout=8000)
                     if resp.status != 200:
@@ -155,6 +178,29 @@ class UrlRewardHandler:
                     continue
         except Exception as e:
             log_warn(f"_resolve_action_id error: {e}")
+        return None
+
+    async def _resolve_action_id_from_inline(self) -> str | None:
+        """Fallback: search inline scripts for action IDs."""
+        try:
+            inline_scripts = await self.page.evaluate(
+                """
+                () => Array.from(document.querySelectorAll('script:not([src])'))
+                    .map(s => s.textContent || '')
+                    .filter(t => t.length > 50)
+                """
+            )
+            for text in inline_scripts:
+                for pattern in self.ACTION_ID_PATTERNS:
+                    match = re.search(pattern, text)
+                    if match:
+                        return match.group(1)
+                # Generic: look for 40-char hex near action keywords
+                match = re.search(r'action["\']?\s*:\s*["\']([a-f0-9]{40})', text)
+                if match:
+                    return match.group(1)
+        except Exception as e:
+            log_warn(f"_resolve_action_id_from_inline error: {e}")
         return None
 
     async def _extract_deployment_id(self) -> str | None:
