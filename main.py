@@ -433,13 +433,6 @@ async def run_multi_accounts(config: BotConfig, target_account: str = None):
         if res:
             all_results.append(res)
 
-        # Long cool down between different accounts to avoid temporary limits
-        if idx < len(accounts):
-            import random
-            delay_secs = random.randint(60, 150)
-            log_info(f"Nghỉ {delay_secs} giây trước khi chuyển sang tài khoản tiếp theo (chậm mà chắc)...")
-            await asyncio.sleep(delay_secs)
-
     # Generate visual dashboard and send Grand Multi-Account Summary via Telegram
     AccountReporter.generate_html_dashboard()
     if len(all_results) > 1:

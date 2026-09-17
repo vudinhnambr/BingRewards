@@ -2,10 +2,8 @@ name: Bing Rewards Daily Automation
 
 on:
   schedule:
-    # Flow 1: 00:30 AM (Giờ Việt Nam, UTC+7 -> 17:30 UTC hôm trước) - Account 1, 2, 3
+    # 00:30 AM Giờ Việt Nam (17:30 UTC hôm trước)
     - cron: '30 17 * * *'
-    # Flow 2: 04:00 AM (Giờ Việt Nam, UTC+7 -> 21:00 UTC hôm trước) - Account 4, 5, 6
-    - cron: '0 21 * * *'
   workflow_dispatch:
     inputs:
       target_account:
@@ -19,8 +17,6 @@ on:
           - 'Account 2'
           - 'Account 3'
           - 'Account 4'
-          - 'Account 5'
-          - 'Account 6'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -30,20 +26,9 @@ permissions:
   contents: write
 
 jobs:
-  # Flow 1: Account 1, 2, 3
-  flow-1:
+  rewards:
     runs-on: ubuntu-latest
-    timeout-minutes: 210
-    if: >-
-      ${{
-        github.event_name == 'schedule' && (github.event.schedule == '30 17 * * *' || github.event.schedule == '30 5 * * *') ||
-        github.event_name == 'workflow_dispatch' && (
-          github.event.inputs.target_account == 'All' ||
-          github.event.inputs.target_account == 'Account 1' ||
-          github.event.inputs.target_account == 'Account 2' ||
-          github.event.inputs.target_account == 'Account 3'
-        )
-      }}
+    timeout-minutes: 120
 
     steps:
       - name: Checkout Code
@@ -64,7 +49,7 @@ jobs:
         run: |
           python -m playwright install chromium --with-deps
 
-      - name: Run Flow 1 (Account 1, 2, 3)
+      - name: Run Rewards Bot
         env:
           TZ: 'Asia/Ho_Chi_Minh'
           MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
@@ -72,144 +57,27 @@ jobs:
           MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
           MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
           MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
-          MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
-          MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ACCOUNT_LABEL_1: ${{ secrets.ACCOUNT_LABEL_1 }}
           ACCOUNT_LABEL_2: ${{ secrets.ACCOUNT_LABEL_2 }}
           ACCOUNT_LABEL_3: ${{ secrets.ACCOUNT_LABEL_3 }}
           ACCOUNT_LABEL_4: ${{ secrets.ACCOUNT_LABEL_4 }}
-          ACCOUNT_LABEL_5: ${{ secrets.ACCOUNT_LABEL_5 }}
-          ACCOUNT_LABEL_6: ${{ secrets.ACCOUNT_LABEL_6 }}
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          sync_dashboard() {
-            python -c "from src.reporter import AccountReporter; AccountReporter.generate_html_dashboard()"
-            git add data/accounts_history.json dashboard.html index.html
-            git diff --quiet && git diff --staged --quiet || {
-              git commit -m "chore(stats): auto sync rewards dashboard [skip ci]"
-              for i in {1..5}; do
-                git pull --rebase -X ours origin main && git push origin main && break || sleep 5
-              done
-            }
-          }
 
           TARGET="${{ github.event.inputs.target_account || 'All' }}"
           if [ "$TARGET" = "All" ]; then
             python main.py --all --headless --account "Account 1"
-            sync_dashboard || true
             python main.py --all --headless --account "Account 2"
-            sync_dashboard || true
             python main.py --all --headless --account "Account 3"
-            sync_dashboard || true
-          else
-            python main.py --all --headless --account "$TARGET"
-            sync_dashboard || true
-          fi
-
-      - name: Commit and Push Dashboard History
-        if: always()
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          python -c "from src.reporter import AccountReporter; AccountReporter.generate_html_dashboard()"
-          git add data/accounts_history.json dashboard.html index.html
-          git diff --quiet && git diff --staged --quiet || {
-            git commit -m "chore(stats): update rewards dashboard and accounts history [skip ci]"
-            for i in {1..5}; do
-              git pull --rebase -X ours origin main && git push origin main && break || sleep 5
-            done
-          }
-
-  # Flow 2: Account 4, 5, 6
-  flow-2:
-    runs-on: ubuntu-latest
-    timeout-minutes: 210
-    # Khi dispatch thủ công với All: chờ flow-1 xong mới chạy (tuần tự)
-    # Khi dispatch chọn Account 4/5/6 riêng lẻ: chạy ngay không cần chờ
-    # Khi schedule: 2 flow hoạt động độc lập theo lịch riêng
-    needs: [flow-1]
-    if: >-
-      ${{
-        always() &&
-        (
-          github.event_name == 'schedule' && github.event.schedule == '0 21 * * *' ||
-          github.event_name == 'workflow_dispatch' && (
-            github.event.inputs.target_account == 'All' ||
-            github.event.inputs.target_account == 'Account 4' ||
-            github.event.inputs.target_account == 'Account 5' ||
-            github.event.inputs.target_account == 'Account 6'
-          )
-        )
-      }}
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install Playwright Browsers
-        run: |
-          python -m playwright install chromium --with-deps
-
-      - name: Run Flow 2 (Account 4, 5, 6)
-        env:
-          TZ: 'Asia/Ho_Chi_Minh'
-          MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
-          MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
-          MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
-          MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
-          MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
-          MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
-          MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ACCOUNT_LABEL_1: ${{ secrets.ACCOUNT_LABEL_1 }}
-          ACCOUNT_LABEL_2: ${{ secrets.ACCOUNT_LABEL_2 }}
-          ACCOUNT_LABEL_3: ${{ secrets.ACCOUNT_LABEL_3 }}
-          ACCOUNT_LABEL_4: ${{ secrets.ACCOUNT_LABEL_4 }}
-          ACCOUNT_LABEL_5: ${{ secrets.ACCOUNT_LABEL_5 }}
-          ACCOUNT_LABEL_6: ${{ secrets.ACCOUNT_LABEL_6 }}
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          sync_dashboard() {
-            python -c "from src.reporter import AccountReporter; AccountReporter.generate_html_dashboard()"
-            git add data/accounts_history.json dashboard.html index.html
-            git diff --quiet && git diff --staged --quiet || {
-              git commit -m "chore(stats): auto sync rewards dashboard [skip ci]"
-              for i in {1..5}; do
-                git pull --rebase -X ours origin main && git push origin main && break || sleep 5
-              done
-            }
-          }
-
-          TARGET="${{ github.event.inputs.target_account || 'All' }}"
-          if [ "$TARGET" = "All" ]; then
             python main.py --all --headless --account "Account 4"
-            sync_dashboard || true
-            python main.py --all --headless --account "Account 5"
-            sync_dashboard || true
-            python main.py --all --headless --account "Account 6"
-            sync_dashboard || true
           else
             python main.py --all --headless --account "$TARGET"
-            sync_dashboard || true
           fi
 
-      - name: Commit and Push Dashboard History
+      - name: Sync Dashboard & Push
         if: always()
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -222,4 +90,3 @@ jobs:
               git pull --rebase -X ours origin main && git push origin main && break || sleep 5
             done
           }
-
