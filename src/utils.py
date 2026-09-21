@@ -38,7 +38,7 @@ def log_error(msg: str):
 def log_step(title: str):
     console.rule(f"[bold cyan]{title}[/bold cyan]")
 
-async def random_delay(min_sec: float = 6.0, max_sec: float = 12.0, reason: str = ""):
+async def random_delay(min_sec: float = 7.0, max_sec: float = 14.0, reason: str = ""):
     """Async delay with random duration to mimic human behavior."""
     delay = round(random.uniform(min_sec, max_sec), 2)
     if reason:
