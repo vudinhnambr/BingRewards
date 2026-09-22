@@ -1808,5 +1808,15 @@
     "status": "Thành công",
     "timestamp": "22/09/2026 18:57:49",
     "date": "22/09/2026"
+  },
+  {
+    "account": "vudinhnambrvt@gmail.com",
+    "start_points": "6,131",
+    "end_points": "6,386",
+    "gained": 255,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "22/09/2026 20:07:16",
+    "date": "22/09/2026"
   }
 ]
