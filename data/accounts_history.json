@@ -1938,5 +1938,15 @@
     "status": "Lỗi đăng nhập",
     "timestamp": "24/09/2026 04:53:39",
     "date": "24/09/2026"
+  },
+  {
+    "account": "vudinhnambr1@gmail.com",
+    "start_points": "3,380",
+    "end_points": "3,480",
+    "gained": 100,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "24/09/2026 05:48:45",
+    "date": "24/09/2026"
   }
 ]
