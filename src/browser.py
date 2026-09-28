@@ -67,7 +67,15 @@ class BrowserManager:
         headless = False if force_headed else self.config.headless
 
         viewport = MOBILE_VIEWPORT if is_mobile else DESKTOP_VIEWPORT
-        user_agent = MOBILE_UA if is_mobile else DESKTOP_UA
+        
+        # Try to launch with msedge channel first if configured, fallback to chromium
+        launch_channel = self.config.browser_channel if self.config.browser_channel in ["msedge", "chrome"] else None
+
+        # Do not override UA for desktop Edge to preserve authentic Client Hints & build version
+        if not is_mobile and launch_channel == "msedge":
+            user_agent = None
+        else:
+            user_agent = MOBILE_UA if is_mobile else DESKTOP_UA
 
         args = [
             "--disable-blink-features=AutomationControlled",
@@ -78,9 +86,6 @@ class BrowserManager:
             "--start-maximized" if not is_mobile else "",
         ]
         args = [a for a in args if a]
-
-        # Try to launch with msedge channel first if configured, fallback to chromium
-        launch_channel = self.config.browser_channel if self.config.browser_channel in ["msedge", "chrome"] else None
 
         try:
             self.context = await self.playwright.chromium.launch_persistent_context(
