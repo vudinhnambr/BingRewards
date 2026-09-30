@@ -1,15 +1,5 @@
 [
   {
-    "account": "csb.qaqc@gmail.com",
-    "start_points": "190",
-    "end_points": "190",
-    "gained": 0,
-    "streak": "0",
-    "status": "Thành công",
-    "timestamp": "05/09/2026 23:58:53",
-    "date": "05/09/2026"
-  },
-  {
     "account": "vudinhnambr@gmail.com",
     "start_points": "495",
     "end_points": "498",
@@ -1998,5 +1988,15 @@
     "status": "Thành công",
     "timestamp": "30/09/2026 23:40:33",
     "date": "30/09/2026"
+  },
+  {
+    "account": "vudinhnambrvt@gmail.com",
+    "start_points": "8,576",
+    "end_points": "8,896",
+    "gained": 320,
+    "streak": "0",
+    "status": "Thành công",
+    "timestamp": "01/10/2026 00:54:15",
+    "date": "01/10/2026"
   }
 ]
