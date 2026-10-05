@@ -141,59 +141,60 @@ class RewardsDashboard:
             pass
 
     async def handle_drawer_actions(self):
-        """Perform actions inside opened side drawer."""
+        """Perform actions inside opened side drawer, such as Claiming points or Checking in."""
         await asyncio.sleep(1.5)
 
-        # Skip drawers that are just info/membership pages, not actionable tasks
-        try:
-            drawer_text = await self.page.inner_text("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
-            if drawer_text:
-                skip_keywords = ["your membership", "earn points by completing", "gold benefits", "how it works", "benefits", "search and earn"]
-                if any(k in drawer_text.lower() for k in skip_keywords):
-                    log_info("Drawer la trang info/thuong, dong lai...")
-                    await self.close_any_drawer()
-                    return
-        except Exception:
-            pass
-
-        action_selectors = [
-            ("Check-in now", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Diem danh')"),
-            ("Activate streak", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kich hoat')"),
-            ("Claim points", "button:has-text('Claim points'), button:has-text('Claim'), button:has-text('Nhan diem')"),
-            ("Search now", "button:has-text('Search now'), button:has-text('Tim kiem ngay')"),
-            ("Get stamp", "button:has-text('Get stamp'), button:has-text('Stamp'), button:has-text('Collect')"),
-            ("Redeem", "button:has-text('Redeem'), button:has-text('Get reward'), button:has-text('Nhan thuong')"),
-            ("Complete", "button:has-text('Complete'), button:has-text('Done'), button:has-text('Finish')")
-        ]
-        drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
+        drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer'], .flyout")
         container = drawer if drawer else self.page
 
+        action_selectors = [
+            ("Check-in", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Điểm danh'), [aria-label*='check-in' i]"),
+            ("Claim", "button:has-text('Claim points'), button:has-text('Claim'), button:has-text('Nhận'), a:has-text('Claim'), [aria-label*='claim' i]"),
+            ("Activate", "button:has-text('Activate streak'), button:has-text('Activate'), button:has-text('Kích hoạt')"),
+            ("Collect Stamp", "button:has-text('Get stamp'), button:has-text('Stamp'), button:has-text('Collect')"),
+            ("Complete", "button:has-text('Complete'), button:has-text('Done'), button:has-text('Finish')")
+        ]
+
+        action_performed = False
+
+        # 1. Primary actionable buttons scan
         for action_name, sel in action_selectors:
-            btn = await container.query_selector(sel)
-            if btn and await btn.is_visible():
-                log_info(f"Bam nut trong Side Drawer: {action_name}")
+            btns = await container.query_selector_all(sel)
+            for btn in btns:
                 try:
-                    await btn.click()
-                    await asyncio.sleep(3)
+                    if await btn.is_visible():
+                        txt = (await btn.inner_text() or "").strip()
+                        if "redeem" in txt.lower():
+                            continue
+                        log_info(f"Bấm nút trong Side Drawer: {action_name} ('{txt[:40]}')")
+                        await btn.click()
+                        await asyncio.sleep(2.5)
+                        action_performed = True
                 except Exception:
                     pass
-                break
 
-        # Fallback: try clicking any button with "claim" text (case-insensitive)
+        # 2. Fallback scan for all clickable elements with claim / point keywords
         try:
-            fallback_btns = await container.query_selector_all("button, [role='button'], mee-button")
-            log_info(f"Found {len(fallback_btns)} fallback buttons to check")
-            for idx, btn in enumerate(fallback_btns):
-                btn_text = (await btn.inner_text() or "").strip()
-                btn_tag = await btn.evaluate("el => el.tagName")
-                log_info(f"  Button {idx}: tag={btn_tag} text='{btn_text[:80]}'")
-                if "claim" in btn_text.lower() and await btn.is_visible():
-                    log_info(f"Fallback click nut Claim: '{btn_text}'")
-                    await btn.click()
-                    await asyncio.sleep(3)
-                    break
+            fallback_btns = await container.query_selector_all("button, [role='button'], mee-button, a[role='button']")
+            for btn in fallback_btns:
+                try:
+                    if await btn.is_visible():
+                        btn_text = (await btn.inner_text() or "").strip()
+                        lower_txt = btn_text.lower()
+                        if "redeem" in lower_txt:
+                            continue
+                        if any(k in lower_txt for k in ["claim", "nhận", "check-in", "điểm danh", "collect"]):
+                            log_info(f"Fallback bấm nút trong Side Drawer: '{btn_text[:50]}'")
+                            await btn.click()
+                            await asyncio.sleep(2.5)
+                            action_performed = True
+                except Exception:
+                    pass
         except Exception as e:
             log_warn(f"Fallback claim click error: {e}")
+
+        if not action_performed:
+            log_info("Side Drawer không có nút hành động nào còn lại, đóng lại...")
 
         await self.close_any_drawer()
 
@@ -473,41 +474,68 @@ class RewardsDashboard:
         log_info(f"=== Hoan tat: Tong so the da xu ly = {len(self.processed_titles)} ===")
 
     async def claim_ready_points(self):
-        """Click 'Ready to claim' / 'Claim >' button on dashboard to collect pending points."""
+        """Click 'Ready to claim' / 'Claim >' button on dashboard and earn pages to collect pending points."""
         try:
-            await self.open_dashboard("https://rewards.bing.com/dashboard")
-            await asyncio.sleep(2)
-            claim_selectors = [
-                "a:has-text('Claim')",
-                "button:has-text('Claim')",
-                "[aria-label*='claim' i]",
-                "a[href*='claim']",
-            ]
-            claimed = False
-            for sel in claim_selectors:
-                btns = await self.page.query_selector_all(sel)
-                for btn in btns:
-                    try:
-                        if await btn.is_visible():
-                            txt = (await btn.inner_text()).strip()
-                            if txt.lower() in ("claim", "claim >", "claim>") or "claim" in txt.lower() and "redeem" not in txt.lower():
-                                log_info(f"[Claim] Nhan nut: '{txt}'")
-                                await btn.click()
-                                await asyncio.sleep(3)
+            for page_url in ["https://rewards.bing.com/dashboard", "https://rewards.bing.com/earn"]:
+                await self.open_dashboard(page_url)
+                await asyncio.sleep(2)
+                await self._expand_all_accordions()
+
+                claim_selectors = [
+                    "button:has-text('Claim')",
+                    "a:has-text('Claim')",
+                    "[aria-label*='claim' i]",
+                    "div:has-text('Ready to claim') button",
+                    "div:has-text('Ready to claim') a",
+                    "div[class*='claim'] button",
+                    "div[class*='Claim'] button"
+                ]
+
+                claimed = False
+                for sel in claim_selectors:
+                    btns = await self.page.query_selector_all(sel)
+                    for btn in btns:
+                        try:
+                            if await btn.is_visible():
+                                txt = (await btn.inner_text() or "").strip()
+                                lower_txt = txt.lower()
+                                if "redeem" in lower_txt:
+                                    continue
+                                if "claim" in lower_txt or "nhận" in lower_txt:
+                                    log_info(f"[Claim] Nhấn nút claim: '{txt[:50]}'")
+                                    await btn.click()
+                                    await asyncio.sleep(2.0)
+                                    claimed = True
+
+                                    # If clicking opened a side drawer, handle all actions inside it
+                                    drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
+                                    if drawer and await drawer.is_visible():
+                                        await self.handle_drawer_actions()
+                        except Exception:
+                            pass
+
+                # Also check direct card clicking for "Ready to claim"
+                try:
+                    ready_cards = await self.page.query_selector_all("div:has-text('Ready to claim'), [aria-label*='Ready to claim' i]")
+                    for r_card in ready_cards:
+                        if await r_card.is_visible():
+                            c_text = (await r_card.inner_text() or "").strip()
+                            # If contains non-zero points or claim button
+                            if "claim" in c_text.lower() and not "0\nclaim" in c_text.lower():
+                                log_info(f"[Claim] Nhấn thẻ Ready to claim: '{c_text[:50]}'")
+                                await r_card.click()
+                                await asyncio.sleep(2.0)
                                 claimed = True
-                                # Mark the parent card as done so scan_and_solve_page_cards skips it
-                                await self.page.evaluate(
-                                    """() => {
-                                        const card = document.querySelector('[data-reward-next="true"]');
-                                        if (card) { card.removeAttribute('data-reward-next'); card.setAttribute('data-reward-done', 'true'); }
-                                    }"""
-                                )
-                    except Exception:
-                        pass
-            if not claimed:
-                log_info("[Claim] Khong tim thay nut 'Ready to claim' (co the da claim hoac chua co).")
+                                drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
+                                if drawer and await drawer.is_visible():
+                                    await self.handle_drawer_actions()
+                except Exception:
+                    pass
+
+                if not claimed:
+                    log_info(f"[Claim] Không tìm thấy điểm đang chờ claim tại {page_url.split('/')[-1]}.")
         except Exception as e:
-            log_warn(f"[Claim] Loi khi claim ready points: {e}")
+            log_warn(f"[Claim] Lỗi khi claim ready points: {e}")
 
     async def solve_all_activities(self):
         """Complete all tasks across Dashboard, Earn page, and Get Started onboarding."""

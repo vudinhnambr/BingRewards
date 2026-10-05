@@ -15,7 +15,6 @@ on:
           - 'All'
           - 'Account 1'
           - 'Account 2'
-          - 'Account 3'
           - 'Account 4'
 
 concurrency:
@@ -55,13 +54,11 @@ jobs:
           MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
           MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
           MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
-          MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
           MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ACCOUNT_LABEL_1: ${{ secrets.ACCOUNT_LABEL_1 }}
           ACCOUNT_LABEL_2: ${{ secrets.ACCOUNT_LABEL_2 }}
-          ACCOUNT_LABEL_3: ${{ secrets.ACCOUNT_LABEL_3 }}
           ACCOUNT_LABEL_4: ${{ secrets.ACCOUNT_LABEL_4 }}
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -71,7 +68,6 @@ jobs:
           if [ "$TARGET" = "All" ]; then
             python main.py --all --headless --account "Account 1"
             python main.py --all --headless --account "Account 2"
-            python main.py --all --headless --account "Account 3"
             python main.py --all --headless --account "Account 4"
           else
             python main.py --all --headless --account "$TARGET"

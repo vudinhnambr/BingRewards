@@ -9,12 +9,29 @@ from src.utils import log_info, log_success, log_warn, random_delay, console
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
 class BingSearcher:
-    """Performs natural searches on Bing to accumulate points."""
+    """Performs natural searches on Bing to accumulate points with anti-detection and cooldown handling."""
 
     def __init__(self, page: Page, config: BotConfig, is_mobile: bool = False):
         self.page = page
         self.config = config
         self.is_mobile = is_mobile
+
+    async def safe_goto(self, url: str, timeout: int = 30000, retries: int = 2) -> bool:
+        """Safely navigate to URL with retry against net::ERR_ABORTED and timeouts."""
+        for attempt in range(1, retries + 1):
+            try:
+                await self.page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                await asyncio.sleep(1.0)
+                return True
+            except Exception as e:
+                err_msg = str(e)
+                if ("ERR_ABORTED" in err_msg or "net::ERR" in err_msg or "Timeout" in err_msg) and attempt < retries:
+                    log_warn(f"Điều hướng tới '{url[:60]}' gặp sự cố ({err_msg[:60]}), đang thử lại lần {attempt + 1}...")
+                    await asyncio.sleep(2.0)
+                    continue
+                log_warn(f"Không thể tải trang '{url[:60]}': {err_msg[:80]}")
+                return False
+        return False
 
     async def dismiss_popups(self):
         """Dismiss common Bing modals, cookie banners, or Copilot prompts that block search."""
@@ -26,7 +43,9 @@ class BingSearcher:
                 "button:has-text('Maybe later')", "button:has-text('Để sau')",
                 "button:has-text('No thanks')", "button:has-text('Không, cảm ơn')",
                 "button:has-text('Got it')", "button:has-text('Đã hiểu')",
-                "[aria-label*='Close']", "[aria-label*='Đóng']", ".bnp_close_btn"
+                "button:has-text('Stay signed out')", "button:has-text('Duy trì đăng xuất')",
+                "[aria-label*='Close']", "[aria-label*='Đóng']", ".bnp_close_btn",
+                "#id_cancel", "#bep_close"
             ]
             for sel in dismiss_selectors:
                 btn = await self.page.query_selector(sel)
@@ -42,7 +61,7 @@ class BingSearcher:
     async def ensure_bing_login(self):
         """Ensure session is signed in on Bing Search."""
         try:
-            await self.page.goto("https://www.bing.com/", wait_until="domcontentloaded", timeout=30000)
+            await self.safe_goto("https://www.bing.com/", timeout=30000)
             await asyncio.sleep(2)
             await self.dismiss_popups()
 
@@ -67,12 +86,15 @@ class BingSearcher:
 
             if needs_login:
                 log_info(f"Đang đồng bộ đăng nhập tài khoản Microsoft trên Bing Search ({'Mobile' if self.is_mobile else 'Desktop'})...")
-                await self.page.goto(
+                await self.safe_goto(
                     "https://www.bing.com/fd/auth/signin?action=interactive&provider=windows_live_id&return_url=https%3A%2F%2Fwww.bing.com%2F",
-                    wait_until="domcontentloaded",
                     timeout=30000
                 )
                 await asyncio.sleep(3)
+                try:
+                    await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
         except Exception as e:
             log_warn(f"Lỗi khi đồng bộ đăng nhập Bing: {e}")
 
@@ -83,7 +105,8 @@ class BingSearcher:
             for selector in [
                 "#id_rc", "#rh_meter", ".id_rc", "#id_rh", "#b_id_rc",
                 "#rh_anim_container", "[id*='reward'] [class*='point']",
-                "[data-bm] [id*='rc']", "#flyout #id_rc", "#b_header #id_rc"
+                "[data-bm] [id*='rc']", "#flyout #id_rc", "#b_header #id_rc",
+                "#mHamburger #id_rc", ".b_idPartner #id_rc"
             ]:
                 el = await self.page.query_selector(selector)
                 if el:
@@ -126,15 +149,45 @@ class BingSearcher:
             pass
         return "N/A"
 
+    async def _simulate_human_reading(self):
+        """Simulate realistic human scrolling and interaction with search results."""
+        try:
+            # 1. Random scroll down
+            scroll_dist = random.randint(350, 750)
+            await self.page.evaluate(f"window.scrollBy({{top: {scroll_dist}, behavior: 'smooth'}})")
+            await asyncio.sleep(random.uniform(1.2, 2.8))
+
+            # 2. Occasional hover on a search headline
+            if not self.is_mobile and random.random() < 0.6:
+                links = await self.page.query_selector_all("#b_results h2 a, #b_results .b_algo h2")
+                if links:
+                    target_link = random.choice(links[:4])
+                    if await target_link.is_visible():
+                        await target_link.hover()
+                        await asyncio.sleep(random.uniform(0.5, 1.2))
+
+            # 3. Occasional scroll back up slightly
+            if random.random() < 0.5:
+                scroll_up = random.randint(120, 280)
+                await self.page.evaluate(f"window.scrollBy({{top: -{scroll_up}, behavior: 'smooth'}})")
+                await asyncio.sleep(random.uniform(0.8, 1.6))
+        except Exception:
+            pass
+
     async def run_searches(self, target_count: int):
-        """Execute search loop with random delays and human-like actions."""
+        """Execute search loop with natural human simulation, retry logic, and cooldown warnings."""
         mode_str = "Mobile" if self.is_mobile else "Desktop"
         log_info(f"Bắt đầu chuỗi tìm kiếm {mode_str} ({target_count} lượt)...")
 
         # 1. Ensure user is logged in to Bing
         await self.ensure_bing_login()
+        await asyncio.sleep(1.5)
 
         words = WordGenerator.generate_words(target_count)
+
+        last_points = None
+        stagnant_count = 0
+        cooldown_warned = False
 
         with Progress(
             TextColumn(f"[bold blue]{mode_str} Search:"),
@@ -160,64 +213,50 @@ class BingSearcher:
                     if search_input and await search_input.is_visible():
                         try:
                             await search_input.click(timeout=2500)
+                            await asyncio.sleep(random.uniform(0.2, 0.5))
                             await search_input.fill("", timeout=2500)
-                            # Type with realistic slow delay
-                            await search_input.type(query, delay=random.randint(60, 140))
-                            await asyncio.sleep(random.uniform(0.6, 1.2))
+                            
+                            # Type with human typing latency
+                            await search_input.type(query, delay=random.randint(50, 120))
+                            await asyncio.sleep(random.uniform(0.5, 1.2))
 
-                            # CRITICAL: Trigger authentic form submit so Bing processes the query and generates tracking parameters
-                            submitted = await self.page.evaluate("""
-                                (q) => {
-                                    const input = document.querySelector('#sb_form_q') || document.querySelector('input[name="q"]');
-                                    if (input) {
-                                        input.value = q;
-                                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                                    }
-                                    const form = document.querySelector('#sb_form') || document.querySelector('form');
-                                    if (form) {
-                                        form.submit();
-                                        return true;
-                                    }
-                                    return false;
-                                }
-                            """, query)
-
-                            if submitted:
-                                try:
-                                    await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
-                                except Exception:
-                                    pass
-                                search_success = True
+                            # Human Enter press
+                            await search_input.press("Enter")
+                            try:
+                                await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+                            except Exception:
+                                pass
+                            search_success = True
                         except Exception as input_err:
-                            log_warn(f"Không thể submit qua form: {input_err}. Chuyển sang URL trực tiếp...")
-                            await self.page.keyboard.press("Escape")
+                            log_warn(f"Không thể gõ trực tiếp vào ô tìm kiếm: {input_err}. Đang mở URL...")
                             search_success = False
 
                     if not search_success or "search?q=" not in self.page.url:
-                        await self.page.goto(fallback_url, wait_until="domcontentloaded", timeout=30000)
+                        await self.safe_goto(fallback_url, timeout=25000, retries=2)
 
-                    # Simulate human scrolling down and slightly up
-                    try:
-                        scroll_distance = random.randint(300, 700)
-                        await self.page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                        await asyncio.sleep(random.uniform(1.5, 3.0))
+                    # Simulate realistic reading & scrolling
+                    await self._simulate_human_reading()
 
-                        if random.choice([True, False]):
-                            await self.page.evaluate(f"window.scrollBy(0, -{random.randint(100, 300)})")
-                            await asyncio.sleep(random.uniform(1.0, 2.0))
-                    except Exception:
-                        pass
-
+                    # Points tracking & Cooldown inspection
                     points = await self.get_current_points()
                     if points != "N/A":
                         log_info(f"[{i}/{len(words)}] Tìm kiếm: '{query}' | Điểm hiện tại: [bold green]{points}[/bold green]")
+                        if last_points is not None:
+                            if points == last_points:
+                                stagnant_count += 1
+                                if stagnant_count >= 5 and not cooldown_warned:
+                                    log_warn("[WARN] ⚠️ Điểm không tăng sau 5 lượt tìm kiếm liên tiếp (Có thể do Microsoft đang bật Cooldown 15 phút hoặc đã đạt hạn mức ngày).")
+                                    cooldown_warned = True
+                            else:
+                                stagnant_count = 0
+                                cooldown_warned = False
+                        last_points = points
                     else:
                         log_info(f"[{i}/{len(words)}] Tìm kiếm: '{query}'")
 
-                    # Batch cooldown (Microsoft occasionally restricts searches in short windows)
+                    # Batch cooldown (Giãn cách an toàn sau mỗi đợt)
                     if self.config.search_cooldown_batch_size > 0 and i % self.config.search_cooldown_batch_size == 0 and i < len(words):
-                        cooldown = self.config.search_cooldown_wait_sec + random.uniform(2, 5)
+                        cooldown = self.config.search_cooldown_wait_sec + random.uniform(2.0, 5.0)
                         log_info(f"Nghỉ giãn cách batch sau {self.config.search_cooldown_batch_size} lượt: {cooldown:.1f}s...")
                         await asyncio.sleep(cooldown)
                     else:
@@ -225,7 +264,7 @@ class BingSearcher:
 
                 except Exception as e:
                     log_warn(f"Lỗi ở lượt tìm kiếm #{i} ('{query}'): {e}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(2.0)
 
                 progress.update(task_id, advance=1)
 

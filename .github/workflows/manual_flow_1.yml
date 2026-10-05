@@ -1,4 +1,4 @@
-name: Manual Flow 1 (Accounts 1,2,3)
+name: Manual Flow 1 (Accounts 1,2)
 
 on:
   workflow_dispatch:
@@ -12,7 +12,6 @@ on:
           - 'All'
           - 'Account 1'
           - 'Account 2'
-          - 'Account 3'
 
 jobs:
   manual-flow-1:
@@ -36,13 +35,12 @@ jobs:
         run: |
           python -m playwright install chromium --with-deps
 
-      - name: Run Flow 1 (Account 1, 2, 3)
+      - name: Run Flow 1 (Account 1, 2)
         env:
           TZ: 'Asia/Ho_Chi_Minh'
           MICROSOFT_SESSION: ${{ secrets.MICROSOFT_SESSION }}
           MICROSOFT_SESSION_1: ${{ secrets.MICROSOFT_SESSION_1 }}
           MICROSOFT_SESSION_2: ${{ secrets.MICROSOFT_SESSION_2 }}
-          MICROSOFT_SESSION_3: ${{ secrets.MICROSOFT_SESSION_3 }}
           MICROSOFT_SESSION_4: ${{ secrets.MICROSOFT_SESSION_4 }}
           MICROSOFT_SESSION_5: ${{ secrets.MICROSOFT_SESSION_5 }}
           MICROSOFT_SESSION_6: ${{ secrets.MICROSOFT_SESSION_6 }}
@@ -50,7 +48,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ACCOUNT_LABEL_1: ${{ secrets.ACCOUNT_LABEL_1 }}
           ACCOUNT_LABEL_2: ${{ secrets.ACCOUNT_LABEL_2 }}
-          ACCOUNT_LABEL_3: ${{ secrets.ACCOUNT_LABEL_3 }}
           ACCOUNT_LABEL_4: ${{ secrets.ACCOUNT_LABEL_4 }}
           ACCOUNT_LABEL_5: ${{ secrets.ACCOUNT_LABEL_5 }}
           ACCOUNT_LABEL_6: ${{ secrets.ACCOUNT_LABEL_6 }}
@@ -73,8 +70,6 @@ jobs:
             python main.py --all --headless --account "Account 1"
             sync_dashboard || true
             python main.py --all --headless --account "Account 2"
-            sync_dashboard || true
-            python main.py --all --headless --account "Account 3"
             sync_dashboard || true
           else
             python main.py --all --headless --account "$TARGET"
