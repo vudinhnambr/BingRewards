@@ -103,10 +103,11 @@ class BrowserManager:
             )
         except Exception as e:
             log_warn(f"Không thể khởi chạy với channel='{launch_channel}': {e}. Đang dùng Chromium mặc định...")
+            fallback_ua = MOBILE_UA if is_mobile else DESKTOP_UA
             self.context = await self.playwright.chromium.launch_persistent_context(
                 user_data_dir=str(profile_dir),
                 headless=headless,
-                user_agent=user_agent,
+                user_agent=fallback_ua,
                 viewport=viewport,
                 is_mobile=is_mobile,
                 has_touch=is_mobile,
@@ -137,12 +138,19 @@ class BrowserManager:
 
         return self.context
 
-    async def close(self):
-        """Close context and playwright instance."""
+    async def close_context(self):
+        """Close current browser context while keeping Playwright driver process running."""
         try:
             if self.context:
                 await self.context.close()
                 self.context = None
+        except Exception:
+            pass
+
+    async def close(self):
+        """Close context and terminate playwright instance."""
+        try:
+            await self.close_context()
             if self.playwright:
                 await self.playwright.stop()
                 self.playwright = None

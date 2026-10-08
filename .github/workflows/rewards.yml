@@ -2,8 +2,8 @@ name: Bing Rewards Daily Automation
 
 on:
   schedule:
-    # 00:30 AM Giờ Việt Nam (17:30 UTC hôm trước)
-    - cron: '30 17 * * *'
+    # 19:00 (7:00 PM) Giờ Việt Nam (12:00 UTC) - Chạy 1 lần/ngày
+    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       target_account:

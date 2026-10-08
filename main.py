@@ -149,8 +149,10 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
             from src.reporter import AccountReporter
             AccountReporter.log_account_run(account_name, "N/A", "N/A", streak="0", status="Lỗi đăng nhập")
             notifier = TelegramNotifier()
+            import html
+            safe_lbl = html.escape(account_label) if account_label else ""
             if notifier.is_configured:
-                notifier.send_message(f"⚠️ <b>LỖI ĐĂNG NHẬP {f'({account_label})' if account_label else ''}:</b>\nKhông thể truy cập Rewards Dashboard (Session có thể đã hết hạn hoặc cookie bị thiếu). Vui lòng cập nhật lại Secret trên GitHub!")
+                notifier.send_message(f"⚠️ <b>LỖI ĐĂNG NHẬP {f'({safe_lbl})' if safe_lbl else ''}:</b>\nKhông thể truy cập Rewards Dashboard (Session có thể đã hết hạn hoặc cookie bị thiếu). Vui lòng cập nhật lại Secret trên GitHub!")
             return {"account": account_name, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Lỗi đăng nhập"}
 
         summary = await dashboard.get_account_summary()
@@ -172,7 +174,7 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
             searcher_desk = BingSearcher(page_desk, config, is_mobile=False)
             await searcher_desk.run_searches(config.desktop_searches)
 
-        await bm.close()
+        await bm.close_context()
 
         # Phase 2: Mobile Context (Mobile Check-in, Mobile Search & MSN News)
         if config.run_mobile_search or config.run_msn_news or config.run_daily_set:
@@ -196,7 +198,7 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
                 news_reader = MSNNewsReader(page_mob, context_mob)
                 await news_reader.read_articles(count=10)
 
-            await bm.close()
+            await bm.close_context()
 
         # Phase 3: Final Point Summary + UrlReward retry on /earn
         log_step(f"TỔNG KẾT {f'({account_label})' if account_label else ''}")
@@ -265,9 +267,12 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
         from src.reporter import AccountReporter
         AccountReporter.log_account_run(account_name, start_points, end_points, streak=streak, status="Lỗi")
         from src.telegram_bot import TelegramNotifier
+        import html
         notifier = TelegramNotifier()
         if notifier.is_configured:
-            notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT MICROSOFT REWARDS {f'({account_label})' if account_label else ''}:</b>\n<code>{e}</code>")
+            safe_lbl = html.escape(account_label) if account_label else ""
+            safe_err = html.escape(str(e))
+            notifier.send_message(f"⚠️ <b>LỖI CHẠY BOT MICROSOFT REWARDS {f'({safe_lbl})' if safe_lbl else ''}:</b>\n<code>{safe_err}</code>")
         return {"account": account_name, "start_points": str(start_points), "end_points": str(end_points), "gained": 0, "streak": str(streak), "status": "Lỗi"}
     finally:
         await bm.close()

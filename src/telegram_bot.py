@@ -1,4 +1,5 @@
 import os
+import html
 import requests
 from typing import Optional
 from src.utils import log_info, log_warn, log_success, parse_pts
@@ -25,7 +26,7 @@ class TelegramNotifier:
         return bool(self.token and self.chat_id)
 
     def send_message(self, message: str) -> bool:
-        """Send formatted message via Telegram Bot API."""
+        """Send formatted message via Telegram Bot API with fallback for parsing errors."""
         if not self.is_configured:
             return False
 
@@ -42,8 +43,17 @@ class TelegramNotifier:
             if resp.status_code == 200:
                 log_success("Đã gửi thông báo kết quả về Telegram!")
                 return True
-            else:
-                log_warn(f"Lỗi gửi Telegram ({resp.status_code}): {resp.text}")
+            # Fallback if HTML tags caused parse error
+            if "can't parse entities" in resp.text:
+                payload.pop("parse_mode", None)
+                # Strip simple html tags
+                clean_text = message.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").replace("<code>", "").replace("</code>", "")
+                payload["text"] = clean_text
+                fallback_resp = requests.post(url, json=payload, timeout=10)
+                if fallback_resp.status_code == 200:
+                    log_success("Đã gửi thông báo về Telegram (chế độ plain-text fallback)!")
+                    return True
+            log_warn(f"Lỗi gửi Telegram ({resp.status_code}): {resp.text}")
         except Exception as e:
             log_warn(f"Không thể kết nối tới Telegram: {e}")
         return False
@@ -58,13 +68,18 @@ class TelegramNotifier:
         except Exception:
             gained_str = "N/A"
 
-        acc_header = f"👤 <b>Tài khoản:</b> <code>{account_label}</code>\n" if account_label else ""
+        safe_label = html.escape(str(account_label))
+        safe_status = html.escape(str(status))
+        safe_start = html.escape(str(start_pts))
+        safe_end = html.escape(str(end_pts))
+
+        acc_header = f"👤 <b>Tài khoản:</b> <code>{safe_label}</code>\n" if safe_label else ""
         msg = (
             f"🤖 <b>BÁO CÁO MICROSOFT REWARDS HÀNG NGÀY</b>\n\n"
             f"{acc_header}"
-            f"💎 <b>Điểm đầu ngày:</b> <code>{start_pts}</code>\n"
-            f"🎯 <b>Điểm sau khi chạy:</b> <code>{end_pts}</code> (<b>{gained_str} điểm</b>)\n"
-            f"📊 <b>Trạng thái:</b> <code>{status}</code>\n"
+            f"💎 <b>Điểm đầu ngày:</b> <code>{safe_start}</code>\n"
+            f"🎯 <b>Điểm sau khi chạy:</b> <code>{safe_end}</code> (<b>{gained_str} điểm</b>)\n"
+            f"📊 <b>Trạng thái:</b> <code>{safe_status}</code>\n"
             f"⏰ <b>Thời gian:</b> <i>{get_current_time_str()}</i>\n\n"
             f"🚀 <i>Bot tự động cày điểm đã hoàn thành nhiệm vụ!</i>"
         )
@@ -80,10 +95,11 @@ class TelegramNotifier:
         lines = []
 
         for r in results:
-            acc = r.get("account", "Account")
-            end_p = r.get("end_points", "0")
+            acc = html.escape(str(r.get("account", "Account")))
+            end_p = str(r.get("end_points", "0"))
+            safe_end = html.escape(end_p)
             gained = r.get("gained", 0)
-            streak = r.get("streak", "0")
+            streak = html.escape(str(r.get("streak", "0")))
             status = r.get("status", "Thành công")
 
             try:
@@ -94,7 +110,7 @@ class TelegramNotifier:
             total_gained += gained
 
             status_icon = "✅" if status == "Thành công" else "⚠️"
-            lines.append(f"{status_icon} <b>{acc}:</b> <code>{end_p}</code> pts (<b>+{gained}</b>) | 🔥 {streak}d")
+            lines.append(f"{status_icon} <b>{acc}:</b> <code>{safe_end}</code> pts (<b>+{gained}</b>) | 🔥 {streak}d")
 
         accounts_text = "\n".join(lines)
         msg = (

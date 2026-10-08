@@ -116,9 +116,46 @@ class AccountReporter:
         cls.sync_git()
 
     @classmethod
-    def get_latest_summary(cls) -> Dict[str, Any]:
+    def _get_account_maps(cls):
+        """Build account number and label normalization mappings."""
+        acc_num_map = {}
+        account_label_map = {}
+        try:
+            from src.config import BotConfig
+            cfg = BotConfig.load()
+            if cfg.account_labels:
+                for i, (label, email) in enumerate(cfg.account_labels.items(), start=1):
+                    acc_num_map[email] = i
+                    acc_num_map[email.split("@")[0]] = i
+                    account_label_map[label] = email
+                    account_label_map[email] = email
+        except Exception:
+            pass
+
+        # Fallback / env vars (used on GitHub Actions)
+        for i in range(1, 11):
+            env_email = os.environ.get(f"ACCOUNT_LABEL_{i}", "").strip()
+            if env_email:
+                label = f"Account {i}"
+                account_label_map[label] = env_email
+                account_label_map[env_email] = env_email
+                acc_num_map[env_email] = i
+                acc_num_map[env_email.split("@")[0]] = i
+
+        return acc_num_map, account_label_map
+
+    @classmethod
+    def get_latest_summary(cls, history: List[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Aggregate latest point stats for all distinct accounts."""
-        history = cls.load_history()
+        acc_num_map, account_label_map = cls._get_account_maps()
+        if history is None:
+            history = cls.load_history()
+            if account_label_map:
+                for item in history:
+                    acc = item.get("account", "")
+                    if acc in account_label_map:
+                        item["account"] = account_label_map[acc]
+
         accounts_map = {}
 
         # First populate from config.json to show all configured accounts immediately
@@ -150,7 +187,16 @@ class AccountReporter:
     def generate_html_dashboard(cls):
         """Generate a sleek, ultra-clean mobile-optimized HTML dashboard."""
         history = cls.load_history()
-        latest_accounts = cls.get_latest_summary()
+        acc_num_map, account_label_map = cls._get_account_maps()
+
+        # Normalize history entries first: replace "Account N" labels with canonical emails
+        if account_label_map:
+            for item in history:
+                acc = item.get("account", "")
+                if acc in account_label_map:
+                    item["account"] = account_label_map[acc]
+
+        latest_accounts = cls.get_latest_summary(history=history)
 
         total_pts = 0
         total_gained_today = 0
@@ -175,41 +221,6 @@ class AccountReporter:
         for item in history:
             if item.get("date") == today_str:
                 total_gained_today += item.get("gained", 0)
-
-        # Build account number mapping from config order
-        acc_num_map = {}
-        account_label_map = {}  # "Account N" or email -> canonical email
-        try:
-            from src.config import BotConfig
-            cfg = BotConfig.load()
-            if cfg.account_labels:
-                for i, (label, email) in enumerate(cfg.account_labels.items(), start=1):
-                    acc_num_map[email] = i
-                    acc_num_map[email.split("@")[0]] = i
-                    account_label_map[label] = email  # "Account 1" -> email
-                    account_label_map[email] = email
-        except Exception:
-            pass
-
-        # Fallback: read ACCOUNT_LABEL_N env vars (used on GitHub Actions)
-        if not account_label_map:
-            import os
-            for i in range(1, 11):
-                env_email = os.environ.get(f"ACCOUNT_LABEL_{i}", "").strip()
-                if env_email:
-                    label = f"Account {i}"
-                    account_label_map[label] = env_email
-                    account_label_map[env_email] = env_email
-                    acc_num_map[env_email] = i
-                    acc_num_map[env_email.split("@")[0]] = i
-
-        # Normalize history entries: replace "Account N" labels with emails
-        if account_label_map:
-            for item in history:
-                acc = item.get("account", "")
-                if acc in account_label_map:
-                    item["account"] = account_label_map[acc]
-
 
         history_json = json.dumps(history, ensure_ascii=False)
         latest_json = json.dumps(latest_accounts, ensure_ascii=False)

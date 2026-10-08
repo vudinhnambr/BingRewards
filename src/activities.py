@@ -271,7 +271,8 @@ class RewardsDashboard:
 
                 # FIX #1 & #2: Selector mo rong + bo filter diem cung nhac
                 next_card_info = await self.page.evaluate(r"""
-                    () => {
+                    (processedList) => {
+                        const processedSet = new Set(processedList || []);
                         const candidates = Array.from(document.querySelectorAll(
                             "mee-rewards-daily-set-item-content, " +
                             "mee-rewards-more-activities-card-item, " +
@@ -399,6 +400,12 @@ class RewardsDashboard:
                             const title = (titleEl.innerText || titleEl.textContent || text).split('\n')[0].trim().substring(0, 100);
                             const link = el.querySelector('a[href]');
                             const href = link ? link.href : '';
+                            const trackingKey = href ? `${title}||${href}` : title;
+
+                            if (processedSet.has(trackingKey) || processedSet.has(title)) {
+                                el.setAttribute('data-reward-done', 'true');
+                                continue;
+                            }
 
                             el.setAttribute('data-reward-next', 'true');
                             return {
@@ -410,7 +417,7 @@ class RewardsDashboard:
                         }
                         return { found: false };
                     }
-                """)
+                """, list(self.processed_titles))
 
                 if not next_card_info.get("found"):
                     log_info(f"[OK] Khong con the nhiem vu nao (da quet {iteration} vong).")

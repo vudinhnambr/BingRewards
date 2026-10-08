@@ -226,12 +226,18 @@ class BingSearcher:
                                 await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
                             except Exception:
                                 pass
-                            search_success = True
+                            
+                            # Verify if the navigation actually occurred for this query
+                            curr_url = urllib.parse.unquote_plus(self.page.url).lower()
+                            if "search?q=" in self.page.url and any(w.lower() in curr_url for w in query.split()[:2]):
+                                search_success = True
+                            else:
+                                search_success = False
                         except Exception as input_err:
                             log_warn(f"Không thể gõ trực tiếp vào ô tìm kiếm: {input_err}. Đang mở URL...")
                             search_success = False
 
-                    if not search_success or "search?q=" not in self.page.url:
+                    if not search_success:
                         await self.safe_goto(fallback_url, timeout=25000, retries=2)
 
                     # Simulate realistic reading & scrolling

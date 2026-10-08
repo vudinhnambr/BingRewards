@@ -14,7 +14,7 @@
   "telegram_bot_token": "",
   "telegram_chat_id": "",
   "search_cooldown_batch_size": 5,
-  "search_cooldown_wait_sec": 4.0,
+  "search_cooldown_wait_sec": 15.0,
   "account_labels": {
     "Account 1": "vudinhnambr@gmail.com",
     "Account 2": "vudinhnambrvt@gmail.com",

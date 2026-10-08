@@ -168,18 +168,37 @@ class UrlRewardHandler:
             )
 
             log_info(f"Found {len(chunk_urls)} JS chunks to scan")
-            for url in chunk_urls[:50]:
+            # Prioritize chunks likely to contain rewards / earn actions
+            def _priority(u: str) -> int:
+                u_lower = u.lower()
+                if any(k in u_lower for k in ["earn", "reward", "dashboard"]):
+                    return 0
+                if any(k in u_lower for k in ["app", "main", "page"]):
+                    return 1
+                return 2
+
+            chunk_urls.sort(key=_priority)
+
+            async def _check_chunk(u: str) -> str | None:
                 try:
-                    resp = await self.page.request.get(url, timeout=8000)
-                    if resp.status != 200:
-                        continue
-                    text = await resp.text()
-                    for pattern in self.ACTION_ID_PATTERNS:
-                        match = re.search(pattern, text)
-                        if match:
-                            return match.group(1)
+                    resp = await self.page.request.get(u, timeout=8000)
+                    if resp.status == 200:
+                        text = await resp.text()
+                        for pattern in self.ACTION_ID_PATTERNS:
+                            m = re.search(pattern, text)
+                            if m:
+                                return m.group(1)
                 except Exception:
-                    continue
+                    pass
+                return None
+
+            # Process concurrently in batches of 5 to speed up discovery
+            for idx in range(0, min(len(chunk_urls), 40), 5):
+                batch = chunk_urls[idx:idx + 5]
+                results = await asyncio.gather(*[_check_chunk(u) for u in batch])
+                for res in results:
+                    if res:
+                        return res
         except Exception as e:
             log_warn(f"_resolve_action_id error: {e}")
         return None
@@ -293,8 +312,6 @@ class UrlRewardHandler:
                 "Content-Type": "text/plain;charset=UTF-8",
                 "Accept": "text/x-component",
             }
-            if self.router_tree:
-                headers["Next-Router-State-Tree"] = self.router_tree[:8000]
             if self.deployment_id:
                 headers["X-Deployment-Id"] = self.deployment_id
 
