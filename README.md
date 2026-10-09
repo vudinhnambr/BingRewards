@@ -44,7 +44,7 @@ BingRewards/
 ├── dashboard.html          # Dashboard tổng quan (auto-generated)
 ├── index.html              # Dashboard copy cho GitHub Pages
 └── .github/workflows/
-    └── rewards.yml         # GitHub Actions workflow (1 lần/ngày lúc 19:00 VN)
+    └── rewards.yml         # GitHub Actions workflow (1 lần/ngày lúc 18:15 VN)
 ```
 
 ### Flow chạy chính (`run_full_bot`):
@@ -222,10 +222,10 @@ Vào repo → Settings → Secrets and variables → Actions → New repository 
 
 ## ⏰ Lịch chạy tự động (Schedule)
 
-Hệ thống được cấu hình tự động chạy **1 lần/ngày vào lúc 19:00 (7:00 PM - Giờ Việt Nam)**:
+Hệ thống được cấu hình tự động chạy **1 lần/ngày vào lúc 18:15 (6:15 PM - Giờ Việt Nam)**:
 
-- **GitHub Actions (`.github/workflows/rewards.yml`)**: Tự động kích hoạt lúc `12:00 UTC` (tương đương `19:00` giờ Việt Nam).
-- **Windows Task Scheduler (`setup_scheduler.ps1`)**: Tự động chạy nền lúc `19:00` mỗi ngày trên máy tính cá nhân.
+- **GitHub Actions (`.github/workflows/rewards.yml`)**: Tự động kích hoạt lúc `11:15 UTC` (tương đương `18:15` giờ Việt Nam).
+- **Windows Task Scheduler (`setup_scheduler.ps1`)**: Tự động chạy nền lúc `18:15` mỗi ngày trên máy tính cá nhân.
 
 ---
 

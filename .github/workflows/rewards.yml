@@ -2,8 +2,8 @@ name: Bing Rewards Daily Automation
 
 on:
   schedule:
-    # 19:15 (7:15 PM) Giờ Việt Nam (12:15 UTC) - Chạy phút lẻ để tránh tắc nghẽn hàng đợi :00 của GitHub Actions
-    - cron: '15 12 * * *'
+    # 18:15 (6:15 PM) Giờ Việt Nam (11:15 UTC) - Chạy 1 lần/ngày
+    - cron: '15 11 * * *'
   workflow_dispatch:
     inputs:
       target_account:
