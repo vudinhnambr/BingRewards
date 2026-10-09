@@ -19,18 +19,39 @@ class RewardsDashboard:
         self.processed_urls: Set[str] = set()
 
     async def open_dashboard(self, url: str = "https://rewards.bing.com/dashboard") -> bool:
-        """Navigate to rewards page and check authentication."""
-        log_info(f"Dang truy cap {url} ({'Mobile' if self.is_mobile else 'Desktop'})...")
-        try:
-            await self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
-            await asyncio.sleep(4)
-            if "login.live.com" in self.page.url:
-                log_warn("Trinh duyet dang o trang Dang nhap!")
+        """Navigate to rewards page and check authentication with smart redirect & retry handling."""
+        log_info(f"Đang truy cập {url} ({'Mobile' if self.is_mobile else 'Desktop'})...")
+        for attempt in range(1, 4):
+            try:
+                await self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                await asyncio.sleep(3)
+
+                # Chờ silent OAuth handshake redirect (nếu URL đang chuyển tiếp qua login.live.com)
+                if "login.live.com" in self.page.url:
+                    log_info("Phát hiện URL chuyển hướng qua login.live.com, đang đợi xác thực tự động...")
+                    for _ in range(8):
+                        await asyncio.sleep(1.5)
+                        if "login.live.com" not in self.page.url and "rewards" in self.page.url:
+                            log_success("Xác thực chuyển tiếp tự động thành công!")
+                            break
+
+                # Nếu vẫn còn ở trang login, kiểm tra thử lại
+                if "login.live.com" in self.page.url:
+                    if attempt < 3:
+                        log_warn(f"Chưa vào được dashboard (lần thử {attempt}/3), đang thử tải lại...")
+                        await asyncio.sleep(3)
+                        continue
+                    log_warn("Trình duyệt đang ở trang Đăng nhập (Session có thể đã hết hạn)!")
+                    return False
+
+                return True
+            except Exception as e:
+                log_warn(f"Không thể tải trang {url} (lần {attempt}/3): {e}")
+                if attempt < 3:
+                    await asyncio.sleep(3)
+                    continue
                 return False
-            return True
-        except Exception as e:
-            log_warn(f"Khong the tai trang {url}: {e}")
-            return False
+        return False
 
     async def get_account_summary(self) -> Dict[str, Any]:
         """Scrape account overview (available points, streak, level, etc.)."""

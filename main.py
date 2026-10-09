@@ -430,7 +430,11 @@ async def run_multi_accounts(config: BotConfig, target_account: str = None):
         os.environ["MICROSOFT_SESSION"] = session_b64
         res = None
         try:
-            res = await run_full_bot(config, account_label=display_name)
+            # Gioi han toi da 90 phut cho moi tai khoan de tranh bi treo vo tan
+            res = await asyncio.wait_for(run_full_bot(config, account_label=display_name), timeout=5400)
+        except asyncio.TimeoutError:
+            log_error(f"Quá thời gian tối đa (90 phút) khi chạy {display_name}!")
+            res = {"account": display_name, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Quá thời gian (Timeout)"}
         except Exception as e:
             log_error(f"Lỗi khi chạy {display_name}: {e}")
             res = {"account": display_name, "start_points": "N/A", "end_points": "N/A", "gained": 0, "streak": "0", "status": "Lỗi"}

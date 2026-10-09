@@ -2,8 +2,8 @@ name: Bing Rewards Daily Automation
 
 on:
   schedule:
-    # 19:00 (7:00 PM) Giờ Việt Nam (12:00 UTC) - Chạy 1 lần/ngày
-    - cron: '0 12 * * *'
+    # 19:15 (7:15 PM) Giờ Việt Nam (12:15 UTC) - Chạy phút lẻ để tránh tắc nghẽn hàng đợi :00 của GitHub Actions
+    - cron: '15 12 * * *'
   workflow_dispatch:
     inputs:
       target_account:
@@ -63,14 +63,28 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          sync_dashboard() {
+            python -c "from src.reporter import AccountReporter; AccountReporter.generate_html_dashboard()"
+            git add data/accounts_history.json dashboard.html index.html
+            git diff --quiet && git diff --staged --quiet || {
+              git commit -m "chore(stats): auto sync rewards dashboard [skip ci]"
+              for i in {1..5}; do
+                git pull --rebase -X ours origin main && git push origin main && break || sleep 5
+              done
+            }
+          }
 
           TARGET="${{ github.event.inputs.target_account || 'All' }}"
           if [ "$TARGET" = "All" ]; then
             python main.py --all --headless --account "Account 1"
+            sync_dashboard || true
             python main.py --all --headless --account "Account 2"
+            sync_dashboard || true
             python main.py --all --headless --account "Account 4"
+            sync_dashboard || true
           else
             python main.py --all --headless --account "$TARGET"
+            sync_dashboard || true
           fi
 
       - name: Sync Dashboard & Push

@@ -35,10 +35,14 @@ class AccountReporter:
     def sync_git(cls):
         """Auto commit & push updated dashboard & history to GitHub if git is available."""
         try:
+            import os
             root_dir = Path(__file__).resolve().parent.parent
-            subprocess.run(["git", "add", "data/accounts_history.json", "dashboard.html", "index.html"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run(["git", "commit", "-m", "chore(stats): auto sync rewards dashboard [skip ci]"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run(["git", "push", "origin", "main"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            git_env = os.environ.copy()
+            git_env["GIT_TERMINAL_PROMPT"] = "0"
+            subprocess.run(["git", "add", "data/accounts_history.json", "dashboard.html", "index.html"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+            subprocess.run(["git", "commit", "-m", "chore(stats): auto sync rewards dashboard [skip ci]"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+            subprocess.run(["git", "pull", "--rebase", "-X", "ours", "origin", "main"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30, env=git_env)
+            subprocess.run(["git", "push", "origin", "main"], cwd=root_dir, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=40, env=git_env)
         except Exception:
             pass
 
