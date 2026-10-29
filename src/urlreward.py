@@ -28,9 +28,17 @@ class UrlRewardHandler:
         r'setGoal["\']?\s*:\s*["\']([a-f0-9]{40})',
         r'completeOffer["\']?\s*:\s*["\']([a-f0-9]{40})',
         r'["\']([a-f0-9]{40})["\']\s*[,\s]*reportActivity',
+        r'["\']([a-f0-9]{40})["\']\s*[,\s]*completeOffer',
+        r'createServerReference\s*\(\s*["\']([a-f0-9]{40})["\']',
+        r'createServerReference\(["\']([a-f0-9]{40})["\']',
+        r'I\[["\']([a-f0-9]{40})["\']',
+        r'"\$\$id"\s*:\s*["\']([a-f0-9]{40})["\']',
+        r'\$\$ACTION_\d+\s*=\s*["\']([a-f0-9]{40})["\']',
         r'"actionId"\s*:\s*["\']([^"\']+)["\']',
         r'"serverActionId"\s*:\s*["\']([^"\']+)["\']',
         r'actionId["\']?\s*:\s*["\']([a-f0-9]{8,64})',
+        r'actions\s*:\s*\[\s*["\']([a-f0-9]{40})["\']',
+        r'\[\"([a-f0-9]{40})\"\]',
         r'\[\"([a-f0-9]{8,64})\"\]',
     ]
 
@@ -161,9 +169,14 @@ class UrlRewardHandler:
         try:
             chunk_urls = await self.page.evaluate(
                 """
-                () => Array.from(document.querySelectorAll('script[src]'))
-                    .map(s => s.src)
-                    .filter(s => s.includes('/_next/static/chunks/') || s.includes('/_next/static/'))
+                () => {
+                    const urls = new Set();
+                    document.querySelectorAll('script[src], link[rel*="preload"][as="script"], link[rel="modulepreload"]').forEach(el => {
+                        const u = el.src || el.href;
+                        if (u && (u.includes('/_next/static/chunks/') || u.includes('/_next/static/'))) urls.add(u);
+                    });
+                    return Array.from(urls);
+                }
                 """
             )
 
@@ -204,8 +217,28 @@ class UrlRewardHandler:
         return None
 
     async def _resolve_action_id_from_inline(self) -> str | None:
-        """Fallback: search inline scripts for action IDs."""
+        """Fallback: search Next.js flight data (__next_f) and inline scripts for action IDs."""
         try:
+            # 1. Search Next.js flight data (__next_f) directly in memory
+            flight_data = await self.page.evaluate(
+                """
+                () => {
+                    try {
+                        if (window.__next_f && Array.isArray(window.__next_f)) {
+                            return window.__next_f.map(c => typeof c[1] === 'string' ? c[1] : JSON.stringify(c[1] || '')).join('\\n');
+                        }
+                    } catch (e) {}
+                    return '';
+                }
+                """
+            )
+            if flight_data:
+                for pattern in self.ACTION_ID_PATTERNS:
+                    match = re.search(pattern, flight_data)
+                    if match:
+                        return match.group(1)
+
+            # 2. Search inline script elements
             inline_scripts = await self.page.evaluate(
                 """
                 () => Array.from(document.querySelectorAll('script:not([src])'))

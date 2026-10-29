@@ -568,6 +568,10 @@ class RewardsDashboard:
                     ready_cards = await self.page.query_selector_all("div:has-text('Ready to claim'), [aria-label*='Ready to claim' i]")
                     for r_card in ready_cards:
                         if await r_card.is_visible():
+                            # Exclude navigation header, banner, footer or huge parent containers
+                            is_wrapper = await r_card.evaluate("el => Boolean(el.closest('header, nav, [role=\"navigation\"], [role=\"banner\"], footer')) || el.children.length > 8")
+                            if is_wrapper:
+                                continue
                             c_text = (await r_card.inner_text() or "").strip()
                             # If contains non-zero points or claim button
                             if "claim" in c_text.lower() and not "0\nclaim" in c_text.lower():

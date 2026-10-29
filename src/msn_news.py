@@ -34,6 +34,19 @@ class MSNNewsReader:
             except Exception:
                 pass
 
+            # Sync Microsoft account login on MSN News if sign-in button is present
+            try:
+                signin_btn = await self.page.query_selector("#me-control a, a:has-text('Sign in'), a:has-text('Đăng nhập'), [aria-label*='Sign in' i]")
+                if signin_btn and await signin_btn.is_visible():
+                    href = await signin_btn.get_attribute("href")
+                    if href and ("login.live.com" in href or "signin" in href):
+                        log_info("Đang đồng bộ đăng nhập tài khoản Microsoft trên MSN News...")
+                        full_signin = href if href.startswith("http") else f"https://www.msn.com{href}"
+                        await self.page.goto(full_signin, wait_until="domcontentloaded", timeout=25000)
+                        await asyncio.sleep(3)
+            except Exception:
+                pass
+
             # Scroll down to load more content
             for _ in range(3):
                 await self.page.evaluate("window.scrollBy(0, 800)")

@@ -65,26 +65,58 @@ class BingSearcher:
             await asyncio.sleep(2)
             await self.dismiss_popups()
 
-            needs_login = False
-            sign_in_el = await self.page.query_selector("a#id_s, a:has-text('Sign in'), a:has-text('Đăng nhập'), #id_l, #hb_s")
-            if sign_in_el and await sign_in_el.is_visible():
-                text = (await sign_in_el.text_content() or "").strip().lower()
-                if any(k in text for k in ["sign in", "đăng nhập", "login"]):
-                    needs_login = True
-            elif self.is_mobile:
-                # On mobile, verify if user points or profile is visible
-                user_id_el = await self.page.query_selector("#id_n, #id_rh, #id_rc, #b_idProviders, .b_idPartner")
-                if not user_id_el:
+            # Robust check for sign-in state on Bing (both Desktop & Mobile)
+            is_signed_in = await self.page.evaluate(r"""
+                () => {
+                    // 1. Check for logged-in profile name or identity container with non-empty text
+                    const userEl = document.querySelector('#id_n, .id_n, #hb_n, [data-bm] #id_n');
+                    if (userEl && (userEl.innerText || userEl.textContent || '').trim().length > 0) {
+                        return true;
+                    }
+                    // 2. Check for rewards points element with valid numbers
+                    const pointsEl = document.querySelector('#id_rc, #b_id_rc, .id_rc, #id_rh, #hb_rc');
+                    if (pointsEl) {
+                        const txt = (pointsEl.innerText || pointsEl.textContent || '').trim();
+                        if (/\d+/.test(txt)) return true;
+                    }
+                    // 3. Explicit sign in buttons indicate definitely not signed in
+                    const signInBtn = document.querySelector('#id_s, #hb_s, a[href*="fd/auth/signin"]');
+                    if (signInBtn) {
+                        const txt = (signInBtn.innerText || signInBtn.textContent || '').toLowerCase();
+                        if (txt.includes('sign in') || txt.includes('đăng nhập') || txt.includes('login')) {
+                            return false;
+                        }
+                    }
+                    return false;
+                }
+            """)
+
+            # On mobile, double check flyout menu if sign-in status is still uncertain
+            if not is_signed_in and self.is_mobile:
+                try:
                     hamb = await self.page.query_selector("#mHamburger")
                     if hamb and await hamb.is_visible():
                         await hamb.click()
-                        await asyncio.sleep(1)
-                        m_signin = await self.page.query_selector("#hb_s, a:has-text('Sign in'), a:has-text('Đăng nhập')")
-                        if m_signin and await m_signin.is_visible():
-                            needs_login = True
+                        await asyncio.sleep(0.8)
+                        flyout_signed_in = await self.page.evaluate(r"""
+                            () => {
+                                const signIn = document.querySelector('#hb_s, a[href*="fd/auth/signin"]');
+                                if (signIn) {
+                                    const t = (signIn.innerText || '').toLowerCase();
+                                    if (t.includes('sign in') || t.includes('đăng nhập') || t.includes('login')) return false;
+                                }
+                                const user = document.querySelector('#hb_n, #id_n, #hb_rc, #id_rc');
+                                if (user && (user.innerText || '').trim().length > 0) return true;
+                                return false;
+                            }
+                        """)
                         await self.page.keyboard.press("Escape")
+                        await asyncio.sleep(0.5)
+                        is_signed_in = flyout_signed_in
+                except Exception:
+                    pass
 
-            if needs_login:
+            if not is_signed_in:
                 log_info(f"Đang đồng bộ đăng nhập tài khoản Microsoft trên Bing Search ({'Mobile' if self.is_mobile else 'Desktop'})...")
                 await self.safe_goto(
                     "https://www.bing.com/fd/auth/signin?action=interactive&provider=windows_live_id&return_url=https%3A%2F%2Fwww.bing.com%2F",
@@ -95,18 +127,21 @@ class BingSearcher:
                     await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
                 except Exception:
                     pass
+                await self.dismiss_popups()
         except Exception as e:
             log_warn(f"Lỗi khi đồng bộ đăng nhập Bing: {e}")
 
     async def get_current_points(self) -> str:
         """Attempt to extract current points counter from Bing header."""
         try:
-            # Strategy 1: Try known selectors
+            # Strategy 1: Try known selectors (including mobile header & hamburger flyout)
             for selector in [
                 "#id_rc", "#rh_meter", ".id_rc", "#id_rh", "#b_id_rc",
                 "#rh_anim_container", "[id*='reward'] [class*='point']",
                 "[data-bm] [id*='rc']", "#flyout #id_rc", "#b_header #id_rc",
-                "#mHamburger #id_rc", ".b_idPartner #id_rc"
+                "#mHamburger #id_rc", ".b_idPartner #id_rc", "#hb_rc",
+                ".b_idPartner #hb_rc", "#flyout #hb_rc", "[aria-label*='points' i]",
+                "[aria-label*='điểm' i]"
             ]:
                 el = await self.page.query_selector(selector)
                 if el:
@@ -119,7 +154,7 @@ class BingSearcher:
             # Strategy 2: JavaScript scan for points-related elements in header
             points_text = await self.page.evaluate(r"""
                 () => {
-                    const headerEls = document.querySelectorAll('#b_header, #id_h, header, [class*="header"], [id*="reward"]');
+                    const headerEls = document.querySelectorAll('#b_header, #id_h, header, [class*="header"], [id*="reward"], #flyout, #mHamburger, .b_idPartner');
                     for (const header of headerEls) {
                         const all = header.querySelectorAll('*');
                         for (const el of all) {
@@ -250,9 +285,11 @@ class BingSearcher:
                         if last_points is not None:
                             if points == last_points:
                                 stagnant_count += 1
-                                if stagnant_count >= 5 and not cooldown_warned:
-                                    log_warn("[WARN] ⚠️ Điểm không tăng sau 5 lượt tìm kiếm liên tiếp (Có thể do Microsoft đang bật Cooldown 15 phút hoặc đã đạt hạn mức ngày).")
-                                    cooldown_warned = True
+                                if stagnant_count >= 5:
+                                    log_warn(f"[COOLDOWN] ⚠️ Điểm không tăng sau {stagnant_count} lượt tìm kiếm liên tiếp (đã đạt giới hạn ngày hoặc đang trong Cooldown 15 phút của Microsoft).")
+                                    log_warn(f"🛑 Tự động dừng sớm chuỗi tìm kiếm {mode_str} tại lượt {i}/{len(words)} để tránh spam và bảo vệ tài khoản khỏi bị phạt.")
+                                    progress.update(task_id, completed=len(words))
+                                    break
                             else:
                                 stagnant_count = 0
                                 cooldown_warned = False
