@@ -147,12 +147,13 @@ class RewardsDashboard:
         try:
             close_buttons = await self.page.query_selector_all(
                 "[aria-label*='Close'], [aria-label*='close'], button:has(svg[data-icon-name*='Cancel']), "
-                "button:has(svg[data-icon-name*='Dismiss']), button:has-text('Close'), button:has-text('Dong')"
+                "button:has(svg[data-icon-name*='Dismiss']), button:has-text('Close'), button:has-text('Dong'), "
+                "button:has-text('Got it'), button:has-text('Đã hiểu'), button:has-text('OK'), button:has-text('Continue')"
             )
             for btn in close_buttons:
                 if await btn.is_visible():
                     try:
-                        await btn.click()
+                        await self.page.evaluate("(el) => { el.click(); el.dispatchEvent(new MouseEvent('click', {bubbles: true})); }", btn)
                         await asyncio.sleep(0.8)
                     except Exception:
                         pass
@@ -167,6 +168,39 @@ class RewardsDashboard:
 
         drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer'], .flyout")
         container = drawer if drawer else self.page
+
+        action_performed = False
+
+        # 0. JavaScript evaluate click inside drawer/dialog for instant & reliable action
+        try:
+            js_action = await self.page.evaluate(r"""
+                () => {
+                    const drawerEl = document.querySelector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer'], .flyout");
+                    const root = drawerEl || document;
+                    const isNav = (el) => Boolean(el.closest('header, nav, [role="navigation"], [role="banner"], footer'));
+                    const candidates = Array.from(root.querySelectorAll("button, [role='button'], a[role='button'], mee-rewards-claim-button"));
+                    for (const b of candidates) {
+                        if (isNav(b)) continue;
+                        const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
+                        if (txt.includes('redeem')) continue;
+                        if (txt.includes('claim') || txt.includes('nhận') || txt.includes('check-in') || txt.includes('check in') ||
+                            txt.includes('điểm danh') || txt.includes('collect') || txt.includes('stamp') || txt.includes('complete') ||
+                            txt.includes('got it') || txt.includes('đã hiểu')) {
+                            b.scrollIntoView({ behavior: 'instant', block: 'center' });
+                            b.click();
+                            b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                            return (b.innerText || b.textContent || '').trim().substring(0, 50);
+                        }
+                    }
+                    return null;
+                }
+            """)
+            if js_action:
+                log_info(f"Đã kích hoạt hành động trong Side Drawer (JS): '{js_action}'")
+                action_performed = True
+                await asyncio.sleep(2.0)
+        except Exception:
+            pass
 
         action_selectors = [
             ("Check-in", "button:has-text('Check-in now'), button:has-text('Check-in'), button:has-text('Check in now'), button:has-text('Check in'), button:has-text('Điểm danh ngay'), button:has-text('Điểm danh'), [aria-label*='check-in' i], [aria-label*='check in' i], [aria-label*='checkin' i]"),
@@ -393,13 +427,22 @@ class RewardsDashboard:
                                 continue;
                             }
 
-                            // SKIP info bonus cards (chi hien thi thong tin, khong completable)
+                            // SKIP info bonus cards / status / tier breakdown (chi hien thi thong tin, khong completable)
                             if (lowerText.includes('stamp bonus') ||
                                 lowerText.includes('star bonus') ||
                                 lowerText.includes('level up bonus') ||
                                 lowerText.includes('default search bonus') ||
                                 lowerText.includes('earned last month') ||
-                                lowerText.includes('not eligible')) {
+                                lowerText.includes('not eligible') ||
+                                lowerText.includes('points breakdown') ||
+                                lowerText.includes("today's points") ||
+                                lowerText.includes('todays points') ||
+                                lowerText.includes('up to 3,500') ||
+                                lowerText.includes('up to 3500') ||
+                                /^\s*(up to\s+)?(3,?500|700|350|200|150|100)\s*(points?|pts)?\s*$/i.test(text.trim()) ||
+                                lowerText.includes('how to earn') ||
+                                lowerText.includes('give with bing') ||
+                                lowerText.includes('streak bonus')) {
                                 el.setAttribute("data-reward-done", "true");
                                 continue;
                             }
@@ -411,19 +454,22 @@ class RewardsDashboard:
                                 continue;
                             }
 
+                            // Bỏ qua thẻ Ready to claim trong vòng lặp vì đã được Phase 0 xử lý dứt điểm
+                            if (lowerText.includes('ready to claim') || (lowerText.includes('pending') && lowerText.includes('claim'))) {
+                                el.setAttribute("data-reward-done", "true");
+                                continue;
+                            }
+
                             // Phai co so diem thuong ro rang
                             const hasPoints = /\+\s*\d+\s*(pts?|points?)?/i.test(text) ||
                                              /\b\d+\s*(pts|points)\b/i.test(text) ||
                                              /\(\+\d+\)/i.test(text);
 
-                            // CHAP NHAN "Ready to claim" keyword
-                            const isReadyToClaim = lowerText.includes('ready to claim');
-
                             // Hoac la card co link den Bing/Microsoft (Daily Set, quiz, poll)
                             const activityLink = el.querySelector("a[href*='bing.com'], a[href*='rewards.bing'], a[href*='microsoft.com']");
                             const hasBingLink = activityLink !== null;
 
-                            if (!hasPoints && !hasBingLink && !isReadyToClaim) continue;
+                            if (!hasPoints && !hasBingLink) continue;
 
                             // Tranh wrapper chua nhieu card con
                             let isParent = false;
@@ -523,13 +569,69 @@ class RewardsDashboard:
         log_info(f"=== Hoan tat: Tong so the da xu ly = {len(self.processed_titles)} ===")
 
     async def claim_ready_points(self):
-        """Click 'Ready to claim' / 'Claim >' button on dashboard and earn pages to collect pending points."""
+        """Click 'Ready to claim' / 'Claim points' buttons on dashboard and earn pages to collect pending points."""
         try:
             for page_url in ["https://rewards.bing.com/dashboard", "https://rewards.bing.com/earn"]:
                 await self.open_dashboard(page_url)
                 await asyncio.sleep(2)
                 await self._expand_all_accordions()
 
+                # Step 1: Execute robust JavaScript to click any claim button or ready-to-claim element
+                claimed_result = await self.page.evaluate(r"""
+                    () => {
+                        let clicked = [];
+                        const isNav = (el) => Boolean(el.closest('header, nav, [role="navigation"], [role="banner"], footer, #mectrl_headerPicture'));
+
+                        // 1. Look for all buttons, links or elements with 'claim' or 'nhận'
+                        const candidates = Array.from(document.querySelectorAll(
+                            "button, a, [role='button'], mee-rewards-claim-button, div[class*='claim'], [aria-label*='claim' i]"
+                        ));
+
+                        for (const el of candidates) {
+                            if (isNav(el)) continue;
+                            const text = (el.innerText || el.textContent || '').trim();
+                            const lower = text.toLowerCase();
+                            if (lower.includes('redeem')) continue;
+
+                            if (lower.includes('claim') || lower.includes('nhận điểm')) {
+                                const childBtn = el.querySelector('button, [role="button"], a');
+                                const target = childBtn || el;
+                                const targetText = (target.innerText || target.textContent || text).trim().substring(0, 50);
+                                target.scrollIntoView({ behavior: 'instant', block: 'center' });
+                                target.click();
+                                target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                                clicked.push(targetText.replace(/\s+/g, ' '));
+                            }
+                        }
+
+                        // 2. Also check any card specifically containing 'ready to claim' or 'pending'
+                        const readyCards = Array.from(document.querySelectorAll("div, mee-card, section, [class*='card']")).filter(el => {
+                            if (isNav(el)) return false;
+                            const t = (el.innerText || '').toLowerCase();
+                            return (t.includes('ready to claim') || t.includes('pending')) && t.includes('claim') && el.children.length <= 6;
+                        });
+                        for (const card of readyCards) {
+                            const btn = card.querySelector("button, a, [role='button']") || card;
+                            btn.scrollIntoView({ behavior: 'instant', block: 'center' });
+                            btn.click();
+                            btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                            clicked.push('Card: ' + (card.innerText || '').replace(/\s+/g, ' ').substring(0, 40));
+                        }
+
+                        return clicked;
+                    }
+                """)
+
+                claimed = False
+                if claimed_result:
+                    claimed = True
+                    for c_txt in set(claimed_result):
+                        log_success(f"[Claim] Đã bấm nhận điểm thành công: '{c_txt}'")
+                    await asyncio.sleep(2.5)
+                    await self.handle_drawer_actions()
+                    await self.close_any_drawer()
+
+                # Step 2: Fallback scan with Playwright element handles using JS dispatch
                 claim_selectors = [
                     "button:has-text('Claim')",
                     "a:has-text('Claim')",
@@ -540,50 +642,29 @@ class RewardsDashboard:
                     "div[class*='Claim'] button"
                 ]
 
-                claimed = False
                 for sel in claim_selectors:
-                    btns = await self.page.query_selector_all(sel)
-                    for btn in btns:
-                        try:
-                            if await btn.is_visible():
-                                txt = (await btn.inner_text() or "").strip()
-                                lower_txt = txt.lower()
-                                if "redeem" in lower_txt:
-                                    continue
-                                if "claim" in lower_txt or "nhận" in lower_txt:
-                                    log_info(f"[Claim] Nhấn nút claim: '{txt[:50]}'")
-                                    await btn.click()
-                                    await asyncio.sleep(2.0)
-                                    claimed = True
-
-                                    # If clicking opened a side drawer, handle all actions inside it
-                                    drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
-                                    if drawer and await drawer.is_visible():
+                    try:
+                        btns = await self.page.query_selector_all(sel)
+                        for btn in btns:
+                            try:
+                                if await btn.is_visible():
+                                    is_in_nav = await btn.evaluate("el => Boolean(el.closest('header, nav, [role=\"navigation\"], [role=\"banner\"], footer'))")
+                                    if is_in_nav:
+                                        continue
+                                    txt = (await btn.inner_text() or "").strip()
+                                    if "redeem" in txt.lower():
+                                        continue
+                                    if "claim" in txt.lower() or "nhận" in txt.lower():
+                                        log_info(f"[Claim] Kích hoạt nút claim: '{txt[:50]}'")
+                                        await self.page.evaluate("(el) => { el.scrollIntoView({behavior: 'instant', block: 'center'}); el.click(); el.dispatchEvent(new MouseEvent('click', {bubbles: true})); }", btn)
+                                        await asyncio.sleep(2.0)
+                                        claimed = True
                                         await self.handle_drawer_actions()
-                        except Exception:
-                            pass
-
-                # Also check direct card clicking for "Ready to claim"
-                try:
-                    ready_cards = await self.page.query_selector_all("div:has-text('Ready to claim'), [aria-label*='Ready to claim' i]")
-                    for r_card in ready_cards:
-                        if await r_card.is_visible():
-                            # Exclude navigation header, banner, footer or huge parent containers
-                            is_wrapper = await r_card.evaluate("el => Boolean(el.closest('header, nav, [role=\"navigation\"], [role=\"banner\"], footer')) || el.children.length > 8")
-                            if is_wrapper:
-                                continue
-                            c_text = (await r_card.inner_text() or "").strip()
-                            # If contains non-zero points or claim button
-                            if "claim" in c_text.lower() and not "0\nclaim" in c_text.lower():
-                                log_info(f"[Claim] Nhấn thẻ Ready to claim: '{c_text[:50]}'")
-                                await r_card.click()
-                                await asyncio.sleep(2.0)
-                                claimed = True
-                                drawer = await self.page.query_selector("[role='dialog'], [aria-modal='true'], [class*='drawer'], [class*='flyout'], [class*='Drawer']")
-                                if drawer and await drawer.is_visible():
-                                    await self.handle_drawer_actions()
-                except Exception:
-                    pass
+                                        await self.close_any_drawer()
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
 
                 if not claimed:
                     log_info(f"[Claim] Không tìm thấy điểm đang chờ claim tại {page_url.split('/')[-1]}.")

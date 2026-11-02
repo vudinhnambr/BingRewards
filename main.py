@@ -184,27 +184,29 @@ async def run_full_bot(config: BotConfig, account_label: str = "") -> dict:
 
             dash_mob = RewardsDashboard(page_mob, context_mob, config, is_mobile=True)
 
-            # Mobile Dashboard Check-in & Visual Search
+            # 1. Mobile Dashboard Check-in & Visual Search
             if await dash_mob.open_dashboard("https://rewards.bing.com/dashboard"):
                 if getattr(config, "run_mobile_checkin", True):
                     await dash_mob.solve_mobile_app_checkin()
                 if getattr(config, "run_visual_search", True):
                     await dash_mob.solve_visual_search()
 
-            # Check /earn drawers & promotions
+            # 2. Check /earn drawers & promotions
             if await dash_mob.open_dashboard("https://rewards.bing.com/earn"):
                 await dash_mob.handle_drawer_actions()
 
-            # Mobile Search
-            if config.run_mobile_search and config.mobile_searches > 0:
-                searcher_mob = BingSearcher(page_mob, config, is_mobile=True)
-                await searcher_mob.run_searches(config.mobile_searches)
-
-            # MSN News Read to Earn (+30 pts bonus)
+            # 3. MSN News Read to Earn (+30 pts bonus) - Chạy trước Mobile Search để tạo giãn cách tự nhiên
             if config.run_msn_news:
                 from src.msn_news import MSNNewsReader
                 news_reader = MSNNewsReader(page_mob, context_mob)
                 await news_reader.read_articles(count=10)
+
+            # 4. Giãn cách an toàn trước Mobile Search để tránh Cooldown tìm kiếm của Microsoft
+            if config.run_mobile_search and config.mobile_searches > 0:
+                log_info("Nghỉ giãn cách 60s trước Mobile Search để tránh Cooldown tìm kiếm của Microsoft...")
+                await asyncio.sleep(60)
+                searcher_mob = BingSearcher(page_mob, config, is_mobile=True)
+                await searcher_mob.run_searches(config.mobile_searches)
 
             await bm.close_context()
 

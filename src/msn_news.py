@@ -116,25 +116,23 @@ class MSNNewsReader:
             read_count = 0
             for i, url in enumerate(urls[:count], start=1):
                 try:
-                    await self.page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                    # Đọc từng bài báo với timeout tối đa 15s để tránh nghẽn luồng
+                    async def _read():
+                        await self.page.goto(url, wait_until="domcontentloaded", timeout=12000)
+                        for _ in range(2):
+                            scroll = random.randint(450, 750)
+                            await self.page.evaluate(f"window.scrollBy({{top: {scroll}, behavior: 'smooth'}})")
+                            await asyncio.sleep(random.uniform(1.2, 2.2))
+                        return True
 
-                    # Simulate human reading: scroll down slowly
-                    for _ in range(4):
-                        scroll = random.randint(400, 800)
-                        await self.page.evaluate(f"window.scrollBy(0, {scroll})")
-                        await asyncio.sleep(random.uniform(2.5, 5.5))
-
-                        # Occasionally scroll up a bit
-                        if random.choice([True, False]):
-                            await self.page.evaluate(f"window.scrollBy(0, -{random.randint(100, 300)})")
-                            await asyncio.sleep(random.uniform(1.0, 2.5))
-
+                    await asyncio.wait_for(_read(), timeout=16.0)
                     read_count += 1
                     log_info(f"[{i}/{count}] Đã đọc bài báo #{i}...")
-                    await random_delay(5.0, 10.0)
+                    await random_delay(1.5, 3.0)
 
                 except Exception as e:
-                    log_warn(f"Lỗi khi đọc bài báo #{i}: {e}")
+                    log_warn(f"Bỏ qua bài báo #{i} do tải chậm ({e})")
+                    continue
 
             log_success(f"Hoàn thành đọc {read_count} bài báo trên MSN News!")
         except Exception as e:

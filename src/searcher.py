@@ -134,24 +134,40 @@ class BingSearcher:
     async def get_current_points(self) -> str:
         """Attempt to extract current points counter from Bing header."""
         try:
-            # Strategy 1: Try known selectors (including mobile header & hamburger flyout)
-            for selector in [
-                "#id_rc", "#rh_meter", ".id_rc", "#id_rh", "#b_id_rc",
-                "#rh_anim_container", "[id*='reward'] [class*='point']",
-                "[data-bm] [id*='rc']", "#flyout #id_rc", "#b_header #id_rc",
-                "#mHamburger #id_rc", ".b_idPartner #id_rc", "#hb_rc",
-                ".b_idPartner #hb_rc", "#flyout #hb_rc", "[aria-label*='points' i]",
-                "[aria-label*='điểm' i]"
-            ]:
+            # Strategy 1: Try specific points counter selectors first
+            primary_selectors = [
+                "#id_rc", "#b_id_rc", "#hb_rc", ".id_rc", "#id_rh",
+                "#flyout #id_rc", "#b_header #id_rc", "#mHamburger #id_rc",
+                "#rh_meter", "#rh_anim_container", ".b_idPartner #id_rc",
+                ".b_idPartner #hb_rc", "#flyout #hb_rc"
+            ]
+            for selector in primary_selectors:
                 el = await self.page.query_selector(selector)
                 if el:
                     text = (await el.text_content() or "").strip()
                     if text and any(c.isdigit() for c in text):
-                        m = re.search(r"[\d,.]+", text)
+                        m = re.search(r"\b\d[\d,.]*\b", text)
                         if m:
-                            return m.group(0)
+                            val = int(m.group(0).replace(",", "").replace(".", ""))
+                            if val > 0:
+                                return m.group(0)
 
-            # Strategy 2: JavaScript scan for points-related elements in header
+            # Strategy 2: Check labeled elements with explicit 'points' or 'điểm' keyword
+            labeled_selectors = [
+                "[aria-label*='points' i]", "[aria-label*='điểm' i]",
+                "[id*='reward'] [class*='point']", "[data-bm] [id*='rc']"
+            ]
+            for selector in labeled_selectors:
+                el = await self.page.query_selector(selector)
+                if el:
+                    aria = (await el.get_attribute("aria-label") or "") + " " + (await el.text_content() or "")
+                    m = re.search(r"(\d[\d,.]*)\s*(points?|pts?|điểm)", aria, re.IGNORECASE)
+                    if m:
+                        val = int(m.group(1).replace(",", "").replace(".", ""))
+                        if val >= 50:  # Exclude single/double digit badge counters like '14' or '22'
+                            return m.group(1)
+
+            # Strategy 3: JavaScript scan for points-related elements in header
             points_text = await self.page.evaluate(r"""
                 () => {
                     const headerEls = document.querySelectorAll('#b_header, #id_h, header, [class*="header"], [id*="reward"], #flyout, #mHamburger, .b_idPartner');
@@ -161,18 +177,18 @@ class BingSearcher:
                             const text = (el.innerText || el.textContent || '').trim();
                             if (/^\d[\d,.]*$/.test(text) && text.length <= 8) {
                                 const num = parseInt(text.replace(/[,.\s]/g, ''));
-                                if (num > 0 && num < 1000000) {
+                                if (num >= 50 && num < 10000000) {
                                     return text;
                                 }
                             }
                         }
                     }
-                    const allEls = document.querySelectorAll('[id*="rc"], [id*="point"], [class*="point"], [class*="reward"]');
+                    const allEls = document.querySelectorAll('[id*="rc"], [id*="point"], [class*="point"]');
                     for (const el of allEls) {
                         const text = (el.innerText || el.textContent || '').trim();
                         if (/^\d[\d,.]*$/.test(text) && text.length <= 8) {
                             const num = parseInt(text.replace(/[,.\s]/g, ''));
-                            if (num > 0 && num < 1000000) return text;
+                            if (num >= 50 && num < 10000000) return text;
                         }
                     }
                     return null;
