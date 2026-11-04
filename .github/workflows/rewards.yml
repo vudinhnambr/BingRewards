@@ -1,9 +1,10 @@
 name: Bing Rewards Daily Automation
 
+# on:
+#   schedule:
+#     # 11:30 AM Giờ Việt Nam (04:30 UTC) - Tạm tắt tự động trên GitHub Actions để bảo vệ tài khoản đổi quà Roblox
+#     - cron: '30 4 * * *'
 on:
-  schedule:
-    # 11:30 AM Giờ Việt Nam (04:30 UTC) - Chạy 1 lần/ngày
-    - cron: '30 4 * * *'
   workflow_dispatch:
     inputs:
       target_account:
@@ -80,8 +81,11 @@ jobs:
             sync_dashboard || true
             python main.py --all --headless --account "Account 2"
             sync_dashboard || true
-            python main.py --all --headless --account "Account 4"
-            sync_dashboard || true
+            # Tạm dừng Account 4 (vudinhnambr2) trong thời gian chờ đổi điểm Roblox
+            # python main.py --all --headless --account "Account 4"
+            # sync_dashboard || true
+          elif [ "$TARGET" = "Account 4" ]; then
+            echo "[INFO] Tai khoan Account 4 (vudinhnambr2) dang tam dung de doi diem Roblox!"
           else
             python main.py --all --headless --account "$TARGET"
             sync_dashboard || true
