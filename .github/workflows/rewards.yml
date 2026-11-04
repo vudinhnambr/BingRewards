@@ -1,10 +1,9 @@
 name: Bing Rewards Daily Automation
 
-# on:
-#   schedule:
-#     # 11:30 AM Giờ Việt Nam (04:30 UTC) - Tạm tắt tự động trên GitHub Actions để bảo vệ tài khoản đổi quà Roblox
-#     - cron: '30 4 * * *'
 on:
+  schedule:
+    # 11:30 AM Giờ Việt Nam (04:30 UTC) - Chạy tự động hàng ngày cho Account 1 & 2
+    - cron: '30 4 * * *'
   workflow_dispatch:
     inputs:
       target_account:
