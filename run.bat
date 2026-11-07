@@ -2,11 +2,10 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 
-if not exist ".venv\Scripts\python.exe" (
-    echo [ERROR] Chua khoi tao moi truong ao .venv! Vui long xem README.md
-    pause
-    exit /b
+set "PY_EXE=python"
+if exist ".venv\Scripts\python.exe" (
+    set "PY_EXE=.venv\Scripts\python.exe"
 )
 
-".venv\Scripts\python.exe" main.py %*
+"%PY_EXE%" main.py %*
 pause

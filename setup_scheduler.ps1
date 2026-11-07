@@ -15,17 +15,20 @@ Write-Host "Thu muc: $WorkingDir"
 Write-Host "Che do: An ngam (Headless) - 1 lan / ngay"
 Write-Host ""
 
-# Tim Python executable: uu tien .venv, neu khong co thi tim python he thong
-$PythonExe = "$WorkingDir\.venv\Scripts\python.exe"
-if (-not (Test-Path $PythonExe)) {
+# Tim Python executable: kiem tra thu vien playwright
+$PythonExe = ""
+$venvPy = "$WorkingDir\.venv\Scripts\python.exe"
+if ((Test-Path $venvPy) -and ((& $venvPy -c "import playwright" 2>$null; $LASTEXITCODE) -eq 0)) {
+    $PythonExe = $venvPy
+} else {
     $sysPy = (Get-Command python -ErrorAction SilentlyContinue).Source
     if ($sysPy -and (Test-Path $sysPy) -and ($sysPy -notmatch "WindowsApps")) {
         $PythonExe = $sysPy
-    } else {
-        Write-Host "[CANH BAO] Khong tim thay '.venv\\Scripts\\python.exe' hoac Python hop le!" -ForegroundColor Red
-        Write-Host "Vui long khoi tao moi truong ao bang lenh: python -m venv .venv" -ForegroundColor Yellow
-        Write-Host "Sau do cai dat thu vien: .\\.venv\\Scripts\\pip.exe install -r requirements.txt" -ForegroundColor Yellow
     }
+}
+
+if (-not $PythonExe) {
+    Write-Host "[CANH BAO] Khong tim thay Python hop le hoac chua cai thu vien!" -ForegroundColor Red
 }
 
 $Action = New-ScheduledTaskAction -Execute $PythonExe -Argument $Arguments -WorkingDirectory $WorkingDir
