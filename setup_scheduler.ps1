@@ -15,10 +15,10 @@ Write-Host "Thu muc: $WorkingDir"
 Write-Host "Che do: An ngam (Headless) - 1 lan / ngay"
 Write-Host ""
 
-# Tim Python executable: kiem tra thu vien playwright
+# Tim Python executable: uu tien .venv neu co, nguoc lai dung python he thong
 $PythonExe = ""
 $venvPy = "$WorkingDir\.venv\Scripts\python.exe"
-if ((Test-Path $venvPy) -and ((& $venvPy -c "import playwright" 2>$null; $LASTEXITCODE) -eq 0)) {
+if (Test-Path $venvPy) {
     $PythonExe = $venvPy
 } else {
     $sysPy = (Get-Command python -ErrorAction SilentlyContinue).Source
